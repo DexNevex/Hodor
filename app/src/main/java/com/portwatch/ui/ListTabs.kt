@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -239,7 +238,7 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
                         )
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Switch(
+                        IosSwitch(
                             checked = isBlocked,
                             onCheckedChange = { Settings.setBlocked(a.first.appKey, it) },
                             colors = hodorSwitchColors(danger = true),
@@ -272,7 +271,7 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
                                 style = MaterialTheme.typography.bodySmall, color = Hodor.Danger,
                             )
                         }
-                        Switch(
+                        IosSwitch(
                             checked = skip,
                             onCheckedChange = { Filter.setExempt(a.first.appKey, it) },
                             colors = hodorSwitchColors(),
@@ -291,7 +290,7 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
                                 style = MaterialTheme.typography.bodySmall, color = Hodor.Violet,
                             )
                         }
-                        Switch(
+                        IosSwitch(
                             checked = allowed,
                             onCheckedChange = { Settings.setAdAllowed(a.first.appKey, it) },
                             colors = hodorSwitchColors(),
@@ -319,7 +318,7 @@ fun PortsTab(list: List<ConnView>, running: Boolean) {
         items(ports, key = { "${it.key.first}/${it.key.second}" }) { (port, cs) ->
             HCard(Modifier.fillMaxWidth(), color = Hodor.Card) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${port.second}", fontSize = 34.sp, fontFamily = Outfit, fontWeight = FontWeight.Light, color = Hodor.Ink)
+                    Text("${port.second}", fontSize = 34.sp, fontFamily = AppFont, fontWeight = FontWeight.Normal, color = Hodor.Ink)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text(cs.first().service ?: "Unregistered port", style = MaterialTheme.typography.titleMedium, color = Hodor.Ink)
@@ -355,7 +354,7 @@ fun AdsCard(list: List<ConnView>) {
                     style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
                 )
             }
-            Switch(checked = blockAds, onCheckedChange = { Settings.setBlockAds(it) }, colors = hodorSwitchColors())
+            IosSwitch(checked = blockAds, onCheckedChange = { Settings.setBlockAds(it) }, colors = hodorSwitchColors())
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -369,7 +368,7 @@ fun AdsCard(list: List<ConnView>) {
             }
             Spacer(Modifier.weight(1f))
             if (blockAds) {
-                Text("$blockedCount", fontFamily = Oxanium, fontSize = 26.sp, color = Hodor.Violet)
+                Text("$blockedCount", fontFamily = AppFont, fontSize = 26.sp, color = Hodor.Violet)
                 Text(" blocked", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
             }
         }
@@ -416,7 +415,7 @@ fun ThreatsPage(list: List<ConnView>) {
                             style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
                         )
                     }
-                    Switch(checked = blockThreats, onCheckedChange = { Settings.setBlockThreats(it) }, colors = hodorSwitchColors())
+                    IosSwitch(checked = blockThreats, onCheckedChange = { Settings.setBlockThreats(it) }, colors = hodorSwitchColors())
                 }
             }
         }
@@ -437,7 +436,7 @@ fun ThreatsPage(list: List<ConnView>) {
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Only on Wi-Fi", style = MaterialTheme.typography.bodyMedium, color = Hodor.Ink, modifier = Modifier.weight(1f))
-                    Switch(checked = wifiOnly, onCheckedChange = { ThreatIntel.setWifiOnly(it) }, colors = hodorSwitchColors())
+                    IosSwitch(checked = wifiOnly, onCheckedChange = { ThreatIntel.setWifiOnly(it) }, colors = hodorSwitchColors())
                 }
                 Text(
                     "Checked every hour; a list is downloaded only when due and changed on the server. " +

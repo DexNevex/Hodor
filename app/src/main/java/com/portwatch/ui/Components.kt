@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -191,15 +194,35 @@ fun bytes(n: Long) = when {
     else -> "%.1f MB".format(n / (1024.0 * 1024))
 }
 
+/** Tint for [IosSwitch]: the iOS green, or red for "block" switches. */
+class SwitchTint(val on: Color)
+
 @Composable
-fun hodorSwitchColors(danger: Boolean = false) = SwitchDefaults.colors(
-    checkedThumbColor = if (danger) Color.White else Hodor.OnAccent,
-    checkedTrackColor = if (danger) Hodor.Danger else Hodor.Accent,
-    checkedBorderColor = Color.Transparent,
-    uncheckedThumbColor = Hodor.Muted,
-    uncheckedTrackColor = Hodor.Pill,
-    uncheckedBorderColor = Hodor.Muted,
-)
+fun hodorSwitchColors(danger: Boolean = false) = SwitchTint(if (danger) Hodor.Danger else IOS_GREEN)
+
+private val IOS_GREEN = Color(0xFF34C759)
+
+/** An iOS-style toggle: pill track, round white thumb that slides across. */
+@Composable
+fun IosSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    colors: SwitchTint = hodorSwitchColors(),
+) {
+    val pos by androidx.compose.animation.core.animateFloatAsState(if (checked) 1f else 0f, label = "switch")
+    val track by androidx.compose.animation.animateColorAsState(if (checked) colors.on else Hodor.Pill, label = "track")
+    Box(
+        modifier.size(width = 51.dp, height = 31.dp).clip(CircleShape).background(track)
+            .let { m -> if (onCheckedChange != null) m.clickable { onCheckedChange(!checked) } else m }
+            .padding(2.dp),
+    ) {
+        Box(
+            Modifier.offset(x = (20 * pos).dp).size(27.dp)
+                .shadow(2.dp, CircleShape).clip(CircleShape).background(Color.White)
+        )
+    }
+}
 
 /** Rate split into number and unit, e.g. ("36.8", "KB/S"). */
 fun rate(bps: Long): Pair<String, String> = when {
@@ -288,5 +311,26 @@ fun PowerButton(on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier)
             style = Stroke(r * 0.06f, cap = StrokeCap.Round),
         )
         drawLine(glyph, Offset(c.x, c.y - g * 1.25f), Offset(c.x, c.y - g * 0.2f), strokeWidth = r * 0.06f, cap = StrokeCap.Round)
+    }
+}
+
+/** iOS system colours used for icon tiles. */
+object IosColor {
+    val Red = Color(0xFFFF3B30); val Orange = Color(0xFFFF9500); val Green = Color(0xFF34C759)
+    val Blue = Color(0xFF007AFF); val Indigo = Color(0xFF5856D6); val Purple = Color(0xFFAF52DE)
+    val Pink = Color(0xFFFF2D55); val Gray = Color(0xFF8E8E93); val Teal = Color(0xFF30B0C7)
+}
+
+/** Rounded-square icon with a white glyph, like the rows in iOS Settings. */
+@Composable
+fun IconTile(icon: Int, color: Color, size: Dp = 32.dp) {
+    Box(
+        Modifier.size(size).clip(RoundedCornerShape(size * 0.24f)).background(color),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            androidx.compose.ui.res.painterResource(icon), contentDescription = null,
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White), modifier = Modifier.size(size * 0.6f),
+        )
     }
 }

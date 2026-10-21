@@ -2,7 +2,7 @@
 
 Hodor shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad sites, ads and trackers, and whole categories of sites.
 
-This guide covers version 0.6.0. Your version is shown at the bottom of the **Map** screen.
+This guide covers version 0.7.0. Your version is shown at the bottom of the **Map** screen.
 
 ---
 
@@ -37,7 +37,7 @@ To stop, tap **LIVE** again or the power button. The chip changes to **OFF**.
 |---|---|
 | **Dock** (dark bar at the bottom) | Home · Traffic · Apps · Shield. The selected screen's button is white with a lime dot. |
 | **Bell** (top right) | Opens **Shield → Recently held**. A red dot means a site was held. |
-| **⋮ menu** (top right) | Search, Ports, Threat lists, Clear closed connections, Start/Stop watching, About |
+| **⋮ menu** (top right) | Search, Ports, Threat lists, Clear closed connections, Start/Stop watching, **Appearance** (System / Light / Dark), About |
 | **Status pill** (top of Home) | Shows Watching / Not watching and the uptime; the round button on its right starts or stops watching |
 | **Search** (from the ⋮ menu) | Filters every screen by app, site, IP address, port, or list name |
 

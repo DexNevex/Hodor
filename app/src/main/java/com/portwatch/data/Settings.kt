@@ -26,6 +26,16 @@ object Settings {
     private val _adAllowed = MutableStateFlow<Set<String>>(emptySet())
     val adAllowed: StateFlow<Set<String>> = _adAllowed
 
+    enum class Appearance(val label: String) { SYSTEM("System"), LIGHT("Light"), DARK("Dark") }
+
+    private val _appearance = MutableStateFlow(Appearance.SYSTEM)
+    val appearance: StateFlow<Appearance> = _appearance
+
+    fun setAppearance(a: Appearance) {
+        _appearance.value = a
+        prefs.edit().putString("appearance", a.name).apply()
+    }
+
     /** Called (on the caller's thread) whenever blocking rules change. */
     val ruleListeners = CopyOnWriteArrayList<() -> Unit>()
 
@@ -37,6 +47,7 @@ object Settings {
         _blockAds.value = prefs.getBoolean("block_ads", false)
         _adLevel.value = ThreatIntel.AdLevel.valueOf(prefs.getString("ad_level", ThreatIntel.AdLevel.NORMAL.name)!!)
         _adAllowed.value = prefs.getStringSet("ad_allowed", emptySet())!!.toSet()
+        _appearance.value = Appearance.entries.firstOrNull { it.name == prefs.getString("appearance", null) } ?: Appearance.SYSTEM
     }
 
     fun adsBlockedFor(app: AppInfo) = _blockAds.value && app.key !in _adAllowed.value

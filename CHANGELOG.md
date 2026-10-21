@@ -4,6 +4,20 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [0.7.0] — 2026-10-22
+
+### Added
+- **Dark mode.** ⋮ menu → **Appearance**: System (follows the phone), Light or Dark. The choice is saved; the status and navigation bar icons follow it, and so does the Blocked screen.
+
+### Changed
+- **iOS-style look:**
+  - Apple's grouped-list colours: pale grey `#F2F2F7` with white cards in light mode, true black with `#1C1C1E` cards in dark mode, and iOS system red and indigo;
+  - iOS-style toggle switches (green, or red for Block switches);
+  - coloured rounded-square icon tiles in the Shield menu and on the Home summary rows, like iOS Settings;
+  - large bold screen titles.
+- **New font: Inter** (SIL Open Font License), the closest free match to Apple's San Francisco, which isn't licensed for Android. Sizes follow the iOS text styles. It replaces Outfit and Oxanium, which were removed.
+- Map dots are dark in light mode and lime in dark mode.
+
 ## [0.6.0] — 2026-10-22
 
 ### Fixed

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import com.portwatch.data.BlockLog
 import com.portwatch.R
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.PlayArrow
@@ -35,7 +36,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -98,21 +98,21 @@ fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: 
             InfoRow(
                 R.drawable.ic_nav_shield, "Protection",
                 reasons.firstOrNull()?.first ?: "Watching, lists up to date",
-                "$score", "%", warn = score < 80,
+                "$score", "%", warn = score < 80, tile = IosColor.Green,
             ) { goTo(Screen.SHIELD, null) }
         }
         item {
             InfoRow(
                 R.drawable.ic_nav_traffic, "Ads blocked",
                 if (blockAds) "${list.count { it.ad != null }} ad and tracker requests seen" else "Off · tap to turn on",
-                "${list.count { it.ad != null && it.state == "blocked" }}", "",
+                "${list.count { it.ad != null && it.state == "blocked" }}", "", tile = IosColor.Purple,
             ) { goTo(Screen.SHIELD, "ads") }
         }
         item {
             InfoRow(
                 R.drawable.ic_bell, "Sites held",
                 held.firstOrNull()?.let { "Last: ${it.domain}" } ?: "Site filter · nothing held yet",
-                "${held.sumOf { it.count }}", "",
+                "${held.sumOf { it.count }}", "", tile = IosColor.Orange,
             ) { goTo(Screen.SHIELD, "held") }
         }
         item { VersionFooter() }
@@ -185,7 +185,7 @@ private fun SpeedHalf(label: String, now: Long, history: List<Long>, total: Long
         }
         val (v, unit) = rate(now)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(v, fontFamily = Outfit, fontWeight = FontWeight.Light, fontSize = 32.sp, color = Hodor.Ink)
+            Text(v, fontFamily = AppFont, fontWeight = FontWeight.Normal, fontSize = 32.sp, color = Hodor.Ink)
             Spacer(Modifier.width(4.dp))
             Text(unit, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted, modifier = Modifier.padding(bottom = 7.dp))
         }
@@ -223,7 +223,7 @@ private fun CountryStrip(list: List<ConnView>) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(flag(g.countryCode), fontSize = 28.sp)
                         Text(
-                            "$n", fontFamily = Outfit, fontWeight = FontWeight.Medium, fontSize = 17.sp,
+                            "$n", fontFamily = AppFont, fontWeight = FontWeight.Medium, fontSize = 17.sp,
                             color = if (bad) Hodor.Danger else Hodor.Ink,
                         )
                         Text(g.countryCode, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
@@ -238,29 +238,21 @@ private fun CountryStrip(list: List<ConnView>) {
 @Composable
 private fun InfoRow(
     icon: Int, title: String, subtitle: String, value: String, unit: String,
-    warn: Boolean = false, onClick: () -> Unit,
+    warn: Boolean = false, tile: Color = IosColor.Green, onClick: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().clip(CardShape).background(Hodor.Card).border(1.dp, Hodor.Border, CardShape)
             .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(50.dp).clip(CircleShape).background(if (warn) Hodor.DangerTint else Hodor.AccentDim),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painterResource(icon), contentDescription = null,
-                colorFilter = ColorFilter.tint(if (warn) Hodor.Danger else Hodor.AccentInk), modifier = Modifier.size(24.dp),
-            )
-        }
+        IconTile(icon, if (warn) IosColor.Red else tile, size = 40.dp)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Hodor.Ink)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
-        Text(value, fontFamily = Outfit, fontWeight = FontWeight.Light, fontSize = 32.sp, color = if (warn) Hodor.Danger else Hodor.Ink)
+        Text(value, fontFamily = AppFont, fontWeight = FontWeight.Normal, fontSize = 32.sp, color = if (warn) Hodor.Danger else Hodor.Ink)
         if (unit.isNotEmpty()) {
             Text(unit, style = MaterialTheme.typography.labelMedium, color = Hodor.Muted, modifier = Modifier.padding(start = 2.dp, top = 8.dp))
         }
@@ -465,7 +457,7 @@ private fun WorldCanvas(points: List<MapPoint>, selected: MapPoint?, view: MapVi
     val tapRadius = with(LocalDensity.current) { 22.dp.toPx() }
     val mergeDist = with(LocalDensity.current) { 26.dp.toPx() }
     val measurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(fontFamily = Oxanium, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+    val labelStyle = TextStyle(fontFamily = AppFont, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
 
     Canvas(
         Modifier.fillMaxSize()
@@ -525,11 +517,11 @@ private fun WorldCanvas(points: List<MapPoint>, selected: MapPoint?, view: MapVi
         for (cl in clusters(points, view, w, h, mergeDist).sortedBy { it.flagged }) {
             val c = cl.center
             val r = (9 + sqrt(cl.count.toFloat()) * 1.1f).coerceAtMost(16f) * unit
-            val fill = if (cl.flagged) Hodor.Danger else Hodor.Dark
+            val fill = if (cl.flagged) Hodor.Danger else Hodor.MapDot
             drawCircle(if (cl.flagged) fill.copy(alpha = 0.18f) else Hodor.Accent.copy(alpha = 0.45f), radius = r * 1.8f, center = c)
             if (selected != null && selected in cl.points) drawCircle(Hodor.Ink, radius = r + 3 * unit, center = c)
             drawCircle(fill, radius = r, center = c)
-            val label = measurer.measure("${cl.count}", labelStyle.copy(color = Hodor.OnDark))
+            val label = measurer.measure("${cl.count}", labelStyle.copy(color = if (cl.flagged) Color.White else Hodor.MapDotText))
             drawText(label, topLeft = Offset(c.x - label.size.width / 2f, c.y - label.size.height / 2f))
         }
     }

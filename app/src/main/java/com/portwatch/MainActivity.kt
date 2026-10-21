@@ -10,7 +10,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import com.portwatch.ui.MainScreen
+import androidx.compose.runtime.LaunchedEffect
 import com.portwatch.ui.HodorTheme
+import com.portwatch.ui.rememberDarkMode
 import com.portwatch.vpn.PortWatchVpnService
 
 class MainActivity : ComponentActivity() {
@@ -21,16 +23,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Dark system-bar icons on the light background.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-        )
         setContent {
+            val dark = rememberDarkMode()
+            // Status-bar icons light on dark, dark on light.
+            LaunchedEffect(dark) { edgeToEdge(dark) }
             HodorTheme {
                 MainScreen(onStart = ::start, onStop = { send(PortWatchVpnService.ACTION_STOP) })
             }
         }
+    }
+
+    private fun edgeToEdge(dark: Boolean) {
+        val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
+        else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     private fun start() {

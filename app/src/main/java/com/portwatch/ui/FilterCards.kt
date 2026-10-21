@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -90,7 +89,7 @@ fun FilterCard() {
                         maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Switch(
+                IosSwitch(
                     checked = on,
                     onCheckedChange = { v ->
                         if (v) ask()
@@ -242,7 +241,7 @@ private fun SettingRow(title: String, about: String, checked: Boolean, onChange:
             Text(title, style = MaterialTheme.typography.bodyLarge, color = Hodor.Ink)
             Text(about, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted)
         }
-        Switch(checked = checked, onCheckedChange = onChange, colors = hodorSwitchColors())
+        IosSwitch(checked = checked, onCheckedChange = onChange, colors = hodorSwitchColors())
     }
 }
 

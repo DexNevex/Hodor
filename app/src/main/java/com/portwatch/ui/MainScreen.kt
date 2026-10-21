@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import com.portwatch.R
 import com.portwatch.data.BlockLog
 import com.portwatch.data.ConnectionLog
+import com.portwatch.data.Settings
+import androidx.compose.material3.AlertDialog
 import com.portwatch.vpn.PortWatchVpnService
 
 /** Screens. The dock shows the first four; Ports is reached from the ⋮ menu. */
@@ -88,6 +90,7 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var menuOpen by remember { mutableStateOf(false) }
+    var appearanceOpen by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val shown = remember(all, query) {
         val q = query.trim()
@@ -114,7 +117,7 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(titles.getValue(screen), style = MaterialTheme.typography.titleLarge, color = Hodor.Ink)
+                    Text(titles.getValue(screen), style = MaterialTheme.typography.headlineLarge, color = Hodor.Ink)
                     Text(
                         if (running) "${all.count { it.active }} open · ${all.distinctBy { it.uid }.size} apps" else "Not watching",
                         style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
@@ -134,6 +137,7 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
                         MenuItem("Threat lists") { menuOpen = false; go(Screen.SHIELD, "threats") }
                         MenuItem("Clear closed connections") { menuOpen = false; ConnectionLog.clearFinished() }
                         MenuItem(if (running) "Stop watching" else "Start watching") { menuOpen = false; toggle() }
+                        MenuItem("Appearance") { menuOpen = false; appearanceOpen = true }
                         MenuItem("About") {
                             menuOpen = false
                             val v = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
@@ -179,6 +183,35 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
         )
         Dock(screen, Modifier.align(Alignment.BottomCenter)) { go(it) }
     }
+    if (appearanceOpen) AppearanceDialog { appearanceOpen = false }
+}
+
+/** System / Light / Dark, iOS-style list with a checkmark. */
+@Composable
+private fun AppearanceDialog(close: () -> Unit) {
+    val current by Settings.appearance.collectAsState()
+    AlertDialog(
+        onDismissRequest = close,
+        containerColor = Hodor.Card,
+        title = { Text("Appearance", style = MaterialTheme.typography.titleMedium, color = Hodor.Ink) },
+        text = {
+            Column(Modifier.clip(RoundedCornerShape(12.dp)).background(Hodor.CardHi)) {
+                Settings.Appearance.entries.forEachIndexed { i, a ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { Settings.setAppearance(a) }.padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(a.label, style = MaterialTheme.typography.bodyLarge, color = Hodor.Ink, modifier = Modifier.weight(1f))
+                        if (a == current) Text("✓", style = MaterialTheme.typography.titleMedium, color = Hodor.AccentInk)
+                    }
+                    if (i < Settings.Appearance.entries.size - 1) {
+                        androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 16.dp), color = Hodor.Border)
+                    }
+                }
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = close) { Text("Done", color = Hodor.AccentInk) } },
+    )
 }
 
 @Composable

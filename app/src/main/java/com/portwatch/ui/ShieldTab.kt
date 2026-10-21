@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,7 +36,7 @@ import com.portwatch.data.Filter
 import com.portwatch.data.Settings
 import com.portwatch.data.ThreatIntel
 
-private data class ShieldEntry(val id: String, val title: String, val icon: Int)
+private data class ShieldEntry(val id: String, val title: String, val icon: Int, val color: androidx.compose.ui.graphics.Color)
 
 /**
  * Shield: a short menu; each row opens its own page instead of one long scroll of cards.
@@ -109,7 +108,7 @@ fun ShieldTab(list: List<ConnView>, page: String?, open: (String?) -> Unit) {
                         val e = pages.first { it.id == id }
                         val (sub, on) = summary(id)
                         MenuRow(e, sub, on) { open(id) }
-                        if (i < ids.size - 1) HorizontalDivider(Modifier.padding(start = 76.dp), color = Hodor.Border)
+                        if (i < ids.size - 1) HorizontalDivider(Modifier.padding(start = 64.dp), color = Hodor.Border)
                     }
                 }
             }
@@ -118,13 +117,13 @@ fun ShieldTab(list: List<ConnView>, page: String?, open: (String?) -> Unit) {
 }
 
 private val pages = listOf(
-    ShieldEntry("filter", "Site filter", R.drawable.ic_nav_shield),
-    ShieldEntry("rules", "Your rules", R.drawable.ic_nav_apps),
-    ShieldEntry("held", "Recently held", R.drawable.ic_bell),
-    ShieldEntry("ads", "Ads & trackers", R.drawable.ic_nav_traffic),
-    ShieldEntry("threats", "Threat lists", R.drawable.ic_nav_shield),
-    ShieldEntry("bypass", "Bypass protection", R.drawable.ic_nav_apps),
-    ShieldEntry("location", "Location lookups", R.drawable.ic_nav_home),
+    ShieldEntry("filter", "Site filter", R.drawable.ic_nav_shield, IosColor.Red),
+    ShieldEntry("rules", "Your rules", R.drawable.ic_nav_apps, IosColor.Blue),
+    ShieldEntry("held", "Recently held", R.drawable.ic_bell, IosColor.Orange),
+    ShieldEntry("ads", "Ads & trackers", R.drawable.ic_nav_traffic, IosColor.Purple),
+    ShieldEntry("threats", "Threat lists", R.drawable.ic_nav_shield, IosColor.Pink),
+    ShieldEntry("bypass", "Bypass protection", R.drawable.ic_nav_apps, IosColor.Gray),
+    ShieldEntry("location", "Location lookups", R.drawable.ic_nav_home, IosColor.Teal),
 )
 
 private val groups = listOf(
@@ -136,23 +135,17 @@ private val groups = listOf(
 @Composable
 private fun MenuRow(e: ShieldEntry, subtitle: String, on: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 13.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(44.dp).clip(CircleShape).background(if (on) Hodor.AccentDim else Hodor.Pill),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painterResource(e.icon), contentDescription = null,
-                colorFilter = ColorFilter.tint(if (on) Hodor.AccentInk else Hodor.Muted), modifier = Modifier.size(22.dp),
-            )
-        }
+        IconTile(e.icon, e.color)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(e.title, style = MaterialTheme.typography.titleMedium, color = Hodor.Ink)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        if (on) Box(Modifier.size(8.dp).clip(CircleShape).background(IosColor.Green))
+        Spacer(Modifier.width(8.dp))
         Text("›", style = MaterialTheme.typography.headlineSmall, color = Hodor.Muted)
     }
 }
@@ -169,7 +162,7 @@ private fun LocationCard() {
                     style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
                 )
             }
-            Switch(checked = geoOnline, onCheckedChange = { Settings.setGeoOnline(it) }, colors = hodorSwitchColors())
+            IosSwitch(checked = geoOnline, onCheckedChange = { Settings.setGeoOnline(it) }, colors = hodorSwitchColors())
         }
     }
 }

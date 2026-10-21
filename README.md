@@ -86,7 +86,7 @@ app/src/main/java/com/portwatch/
   data/                connection log, app lookup, hostnames, lists, settings, stats
   ui/                  Compose screens and components
 app/src/main/assets/countries.geojson   world map (Natural Earth, public domain)
-app/src/main/res/font/                  Outfit and Oxanium (SIL Open Font License)
+app/src/main/res/font/                  Inter (SIL Open Font License)
 docs/                  user guide, architecture and test records
 ```
 

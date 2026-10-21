@@ -38,7 +38,7 @@ import com.portwatch.data.Filter
 import com.portwatch.ui.HCard
 import com.portwatch.ui.Hodor
 import com.portwatch.ui.HodorTheme
-import com.portwatch.ui.Oxanium
+import com.portwatch.ui.AppFont
 import com.portwatch.ui.Pill
 import com.portwatch.ui.StatusChip
 import com.portwatch.ui.Tone
@@ -55,10 +55,15 @@ class BlockedActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
-        )
+        val dark = when (com.portwatch.data.Settings.appearance.value) {
+            com.portwatch.data.Settings.Appearance.DARK -> true
+            com.portwatch.data.Settings.Appearance.LIGHT -> false
+            else -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+        }
+        val bars = if (dark) SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+        else SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
         val domain = intent.getStringExtra("domain") ?: "this site"
         val reason = intent.getStringExtra("reason") ?: "Blocked by Hodor"
         val app = intent.getStringExtra("app") ?: "an app"
@@ -90,7 +95,7 @@ private fun HeldScreen(
 ) {
     Box(
         Modifier.fillMaxSize().background(
-            Brush.verticalGradient(0f to Hodor.Glow, 0.16f to Color(0xFF2CC48F), 0.42f to Hodor.Bg, 1f to Hodor.BgDeep)
+            Brush.verticalGradient(listOf(Hodor.Bg, Hodor.Bg))
         )
     ) {
         Column(
@@ -98,7 +103,7 @@ private fun HeldScreen(
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("HODOR", fontFamily = Oxanium, fontSize = 22.sp, color = Hodor.OnAccent, letterSpacing = 3.sp,
+            Text("HODOR", fontFamily = AppFont, fontSize = 22.sp, color = Hodor.Ink, letterSpacing = 3.sp,
                 modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
             HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 22.dp) {
@@ -108,12 +113,12 @@ private fun HeldScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "HODOR HELD THE DOOR", fontFamily = Oxanium, fontSize = 15.sp, letterSpacing = 3.sp,
+                    "HODOR HELD THE DOOR", fontFamily = AppFont, fontSize = 15.sp, letterSpacing = 3.sp,
                     color = Hodor.AccentInk, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    domain, fontFamily = Oxanium, fontSize = 26.sp, color = Hodor.Ink,
+                    domain, fontFamily = AppFont, fontSize = 26.sp, color = Hodor.Ink,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(10.dp))
