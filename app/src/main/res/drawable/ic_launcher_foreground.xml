@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Hold the door": an arched doorway whose posts and barring beam form an H. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- soft glow -->
+    <path
+        android:fillColor="#2634E3A4"
+        android:pathData="M54,56 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0" />
+    <!-- threshold -->
+    <path
+        android:strokeColor="#1C7A59"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M31,80 L77,80" />
+    <!-- door panel inside the arch -->
+    <path
+        android:fillColor="#3334E3A4"
+        android:pathData="M40,78 L40,47 A14,14 0 0,1 68,47 L68,78 Z" />
+    <!-- door frame: two posts joined by an arch -->
+    <path
+        android:strokeColor="#34E3A4"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M40,78 L40,47 A14,14 0 0,1 68,47 L68,78" />
+    <!-- the beam holding it shut -->
+    <path
+        android:strokeColor="#F1F4F3"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:pathData="M32,61 L76,61" />
+    <!-- doorknob -->
+    <path
+        android:fillColor="#F1F4F3"
+        android:pathData="M61,70 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0" />
+</vector>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-app mark: the launcher door, cropped tight. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="54"
+    android:viewportHeight="54">
+    <group android:translateX="-27" android:translateY="-29">
+        <path
+            android:fillColor="#3334E3A4"
+            android:pathData="M40,78 L40,47 A14,14 0 0,1 68,47 L68,78 Z" />
+        <path
+            android:strokeColor="#34E3A4"
+            android:strokeWidth="5.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M40,78 L40,47 A14,14 0 0,1 68,47 L68,78" />
+        <path
+            android:strokeColor="#F1F4F3"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:pathData="M32,61 L76,61" />
+        <path
+            android:fillColor="#F1F4F3"
+            android:pathData="M61,70 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0" />
+    </group>
+</vector>

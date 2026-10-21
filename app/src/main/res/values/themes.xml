@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.PortWatch" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#07090A</item>
+    </style>
+    <color name="ic_background">#07090A</color>
+</resources>
