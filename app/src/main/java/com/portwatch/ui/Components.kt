@@ -130,7 +130,7 @@ fun stateTone(state: String, active: Boolean) = when {
 
 @Composable
 fun Field(label: String, value: String, modifier: Modifier = Modifier, dark: Boolean = false) {
-    Column(modifier) {
+    Column(modifier.padding(end = 10.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = if (dark) Hodor.OnDarkMuted else Hodor.Muted)
         Text(
             value, style = MaterialTheme.typography.bodyMedium, color = if (dark) Hodor.OnDark else Hodor.Ink,

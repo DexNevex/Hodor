@@ -20,6 +20,9 @@ The git repository was created at 0.3.0. Earlier versions are recorded here from
 ### Changed
 - The Threats tab is now **Shield**, covering both ads and threats.
 
+### Fixed
+- On connection cards, long city names no longer run into the data figures.
+
 ## [0.3.0] — 2026-10-21
 
 ### Added

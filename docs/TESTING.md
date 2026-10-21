@@ -6,9 +6,26 @@ There are no automated tests yet. Each version was checked by hand on the target
 
 Threat-list checks used DNS lookups only: `ping` from the debug shell resolves the name, and Hodor doesn't relay ping packets, so nothing actually reached the listed hosts.
 
-## 0.4.0 — ad blocking
+## 0.4.0 — ad blocking (tested 21 Oct 2026)
 
-*To be filled in once tested on the phone.*
+Method: each ad hostname below is a **real** host (the Mac resolves it through normal DNS) whose **parent** domain is on the list. Every test used a name not looked up before, so Android's DNS cache couldn't answer for it.
+
+| Check | Result |
+|---|---|
+| Turning on **Block ads & trackers** downloads the list on the phone | ✅ HaGeZi Multi Normal, 168,161 domains, 3.36 MB; the Shield card shows "HaGeZi Normal · 168,161 domains · 3.2 MB" |
+| Subdomains of listed domains are blocked | ✅ `www.google-analytics.com` (216.58.205.110 on the Mac) → `unknown host`; `stats.g.doubleclick.net` (74.125.133.154) → `unknown host`; `pagead2.googlesyndication.com` (142.251.140.226) → `unknown host` |
+| Normal sites still resolve | ✅ `www.wikipedia.org` → 185.15.59.224 |
+| An ad-heavy page still loads and works | ✅ dailymail.co.uk and theguardian.com loaded normally |
+| Blocked counts | ✅ the home **ADS BLOCKED** card showed 339 of 339 ad/tracker requests blocked after the Daily Mail visit; the Guardian visit showed "135 ad and tracker lookups blocked" for Chrome; an analytics tracker (`api2.amplitude.com`) in another app was blocked |
+| Per-app count on the Apps screen | ✅ the Shell card showed "4 ad and tracker requests blocked", matching the 4 test lookups |
+| **Allow ads** exempts one app | ✅ with it on for Shell: `ssl.google-analytics.com` → 142.250.151.97 and `googleads.g.doubleclick.net` → 142.250.129.155 resolved |
+| Turning **Allow ads** off again restores blocking | ✅ `securepubads.g.doubleclick.net` → `unknown host` |
+| Ad names highlighted, and "N ad and tracker lookups blocked" in DNS cards | ✅ violet chips; allowed ad lookups still marked as ads but not counted as blocked |
+| Version shown in the app | ✅ "HODOR v0.4.0 · BUILD 4" at the bottom of the map screen |
+| Connection-card fields no longer run together with long city names | ✅ fixed during testing ("New Haven" / "↑4.8 KB ↓5.0 KB") |
+| **Light** list level | ⬜ not tested (only Normal was downloaded) |
+| Cutting a TCP connection when its SNI reveals an ad domain | ⬜ not exercised directly; in practice blocking happened at the DNS stage |
+
 
 ## 0.3.0 — dark map-first design
 
