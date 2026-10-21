@@ -7,6 +7,8 @@ import android.os.SystemClock
 import android.util.Log
 import com.portwatch.data.AppInfo
 import com.portwatch.data.AppResolver
+import com.portwatch.data.Filter
+import com.portwatch.data.Notifier
 import com.portwatch.data.ConnectionLog
 import com.portwatch.data.ConnectionRecord
 import com.portwatch.data.DnsCache
@@ -43,7 +45,11 @@ class Engine(
         private const val TAG = "Hodor"
         const val MTU = 1500
         val FAKE_DNS: InetAddress = InetAddress.getByName("10.111.0.53")
+        /** Filtered names resolve here; port 80 is answered with the block page. */
+        val BLOCK_IP: InetAddress = InetAddress.getByName("10.111.0.80")
     }
+
+    enum class DnsVerdict { ALLOW, NXDOMAIN, NODATA, BLOCK_PAGE }
 
     val selector: Selector = Selector.open()
     val readBuffer: ByteBuffer = ByteBuffer.allocate(65535)
@@ -80,6 +86,7 @@ class Engine(
             }
         }
         Settings.ruleListeners.add(onRulesChanged)
+        try { BlockPage.start() } catch (e: Exception) { Log.w(TAG, "block page server failed", e) }
         thread(name = "pw-engine") { loop() }
     }
 
@@ -148,15 +155,43 @@ class Engine(
         }
     }
 
-    fun shouldBlock(r: ConnectionRecord) =
-        Settings.isBlocked(r.app) ||
-            (Settings.blockThreats.value && r.threat != null) ||
+    fun shouldBlock(r: ConnectionRecord): Boolean {
+        if (Settings.isBlocked(r.app)) return true
+        val host = r.host
+        if (host != null && Filter.isAllowed(host)) return false // your allow rules win
+        return (Settings.blockThreats.value && r.threat != null) ||
+            filterReason(r) != null ||
             (r.ad != null && Settings.adsBlockedFor(r.app))
+    }
 
-    /** Whether a DNS query for [name] from [app] should get NXDOMAIN. */
-    fun blocksName(app: AppInfo, name: String) =
-        (Settings.blockThreats.value && ThreatIntel.matchHost(name) != null) ||
-            (Settings.adsBlockedFor(app) && ThreatIntel.matchAd(name) != null)
+    /** Why site filtering stops this connection, or null. */
+    private fun filterReason(r: ConnectionRecord): String? {
+        val host = r.host ?: return null
+        if (r.remoteIp == BLOCK_IP || r.remoteIp == FAKE_DNS && host.startsWith("DNS via")) return null
+        return Filter.match(r.app, host)
+    }
+
+    /** Records and notifies a connection held by site filtering. */
+    fun noteHeld(r: ConnectionRecord) {
+        val reason = filterReason(r) ?: return
+        r.filter = reason
+        Notifier.held(r.app, r.host ?: return, reason)
+    }
+
+    /**
+     * What to answer a DNS query with. Your allow rules win; then threat lists (NXDOMAIN),
+     * site filtering (the block page address), ads (NXDOMAIN). While filtering, "HTTPS"
+     * records get an empty answer, which turns off Encrypted Client Hello so hostnames stay
+     * visible to the TLS check.
+     */
+    fun dnsVerdict(app: AppInfo, name: String, qtype: Int): Pair<DnsVerdict, String?> {
+        if (Filter.isAllowed(name)) return DnsVerdict.ALLOW to null
+        if (Settings.blockThreats.value && ThreatIntel.matchHost(name) != null) return DnsVerdict.NXDOMAIN to null
+        Filter.match(app, name)?.let { return DnsVerdict.BLOCK_PAGE to it }
+        if (Settings.adsBlockedFor(app) && ThreatIntel.matchAd(name) != null) return DnsVerdict.NXDOMAIN to null
+        if (qtype == 65 && Filter.active && Filter.stopBypass.value && !Filter.isExempt(app)) return DnsVerdict.NODATA to null
+        return DnsVerdict.ALLOW to null
+    }
 
     /** Cuts open connections that a newly blocked app or threat rule now forbids. */
     private fun applyRules() {
@@ -173,6 +208,31 @@ class Engine(
         writeTun(PacketBuilder.udp(key.dstIp, key.srcIp, key.dstPort, key.srcPort, b, 0, len))
     }
 
+    /** "This name exists but has no records of that type." */
+    fun replyNoData(key: FlowKey, data: ByteArray, off: Int, len: Int) {
+        if (len < 12) return
+        val b = data.copyOfRange(off, off + len)
+        b[2] = ((b[2].toInt() or 0x80) and 0xF9.toInt()).toByte()
+        b[3] = 0x80.toByte() // RA=1, RCODE=0
+        writeTun(PacketBuilder.udp(key.dstIp, key.srcIp, key.dstPort, key.srcPort, b, 0, len))
+    }
+
+    /** Answers an A query with [BLOCK_IP] (other types get NODATA). */
+    fun replyBlockPage(key: FlowKey, data: ByteArray, off: Int, len: Int, qtype: Int) {
+        val qEnd = DnsCache.questionEnd(data, off, len)
+        if (qtype != 1 || qEnd == null) return replyNoData(key, data, off, len)
+        val q = data.copyOfRange(off, qEnd)
+        q[2] = ((q[2].toInt() or 0x80) and 0xF9.toInt()).toByte()
+        q[3] = 0x80.toByte()
+        put16(q, 6, 1); put16(q, 8, 0); put16(q, 10, 0) // 1 answer, no authority/additional
+        val answer = byteArrayOf(
+            0xC0.toByte(), 0x0C, 0, 1, 0, 1, // name -> question, type A, class IN
+            0, 0, 0, 60, 0, 4,               // TTL 60 s, 4 bytes
+        ) + BLOCK_IP.address
+        val b = q + answer
+        writeTun(PacketBuilder.udp(key.dstIp, key.srcIp, key.dstPort, key.srcPort, b, 0, b.size))
+    }
+
     fun removeTcp(key: FlowKey) = tcpFlows.remove(key)
     fun removeUdp(key: FlowKey) = udpFlows.remove(key)
 
@@ -185,12 +245,11 @@ class Engine(
     }
 
     /** Where to really connect. DNS sent to our fake resolver goes to the network's resolver. */
-    private fun target(dst: InetAddress, port: Int): InetSocketAddress? =
-        if (dst == FAKE_DNS) {
-            if (port == 53) InetSocketAddress(upstreamDns, 53) else null
-        } else {
-            InetSocketAddress(dst, port)
-        }
+    private fun target(dst: InetAddress, port: Int): InetSocketAddress? = when (dst) {
+        FAKE_DNS -> if (port == 53) InetSocketAddress(upstreamDns, 53) else null
+        BLOCK_IP -> if (port == 80 && BlockPage.port != 0) InetSocketAddress(InetAddress.getLoopbackAddress(), BlockPage.port) else null
+        else -> InetSocketAddress(dst, port)
+    }
 
     private fun handleTcp(ip: IpPacket) {
         val seg = TcpSegment.parse(ip) ?: return
@@ -208,6 +267,7 @@ class Engine(
             }
             val record = newRecord(key)
             if (shouldBlock(record)) {
+                noteHeld(record)
                 record.finish("blocked")
                 rejectTcp(key, seg)
                 return
@@ -251,9 +311,14 @@ class Engine(
                 return
             }
             val target = target(ip.dst, dstPort) ?: return
+            if (dstPort == 443 && dropQuic(key)) {
+                blockedUdp[key] = SystemClock.elapsedRealtime()
+                return
+            }
             val query = if (dstPort == 53) DnsCache.queryName(ip.data, o + 8, len) else null
             val record = newRecord(key, query)
-            if (shouldBlock(record)) {
+            // DNS queries are judged one by one in UdpFlow; here only a blocked app stops them.
+            if (if (dstPort == 53) Settings.isBlocked(record.app) else shouldBlock(record)) {
                 record.finish("blocked")
                 blockedUdp[key] = SystemClock.elapsedRealtime()
                 if (dstPort == 53) replyNxDomain(key, ip.data, o + 8, len)
@@ -270,6 +335,29 @@ class Engine(
         flow.sendToServer(ip.data, o + 8, len)
     }
 
+    /**
+     * While filtering, QUIC (HTTP/3 over UDP 443) is dropped so apps fall back to TCP, where
+     * the hostname is visible. Dropped silently: apps retry over TCP straight away.
+     */
+    private fun dropQuic(key: FlowKey): Boolean {
+        if (!Filter.active) return false
+        val app = AppResolver.resolve(vpn, ownerUid(key))
+        if (Filter.isExempt(app)) return false
+        if (Filter.blockQuic.value) return true
+        val name = DnsCache.lookup(key.dstIp) ?: return false
+        return Filter.match(app, name) != null
+    }
+
+    private fun ownerUid(key: FlowKey): Int = try {
+        cm.getConnectionOwnerUid(
+            key.protocol,
+            InetSocketAddress(key.srcIp, key.srcPort),
+            InetSocketAddress(key.dstIp, key.dstPort),
+        )
+    } catch (e: Exception) {
+        -1
+    }
+
     private fun newRecord(key: FlowKey, queryName: String? = null): ConnectionRecord {
         val uid = try {
             cm.getConnectionOwnerUid(
@@ -280,8 +368,11 @@ class Engine(
         } catch (e: Exception) {
             -1
         }
-        val host = queryName
-            ?: if (key.dstIp == FAKE_DNS) "DNS via ${upstreamDns.hostAddress}" else DnsCache.lookup(key.dstIp)
+        val host = queryName ?: when (key.dstIp) {
+            FAKE_DNS -> "DNS via ${upstreamDns.hostAddress}"
+            BLOCK_IP -> "Hodor block page"
+            else -> DnsCache.lookup(key.dstIp)
+        }
         val record = ConnectionRecord(
             protocol = key.protocol,
             uid = uid,

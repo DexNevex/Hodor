@@ -130,6 +130,30 @@ Where the decision is applied:
 - Switching ad blocking on downloads the ads list immediately.
 - The ads list (~170,000 domains) is only kept in memory while ad blocking is on.
 
+## Site filtering — `data/Filter.kt`, `vpn/BlockPage.kt`, `data/Notifier.kt`
+
+**Rules.** Enabled category lists (downloaded into `files/filter/<id>.txt` through the shared `ThreatIntel.fetch`, except the built-in Dating list), your block and allow rules, temporary allows, and per-app exemptions. Matching walks the hostname and each parent domain down to two labels; **allow rules and temporary allows beat everything except a blocked app.**
+
+**DNS** (`Engine.dnsVerdict`, applied per query in `UdpFlow`):
+
+| Order | Condition | Answer |
+|---|---|---|
+| 1 | Name covered by an allow rule / temporary allow | forwarded |
+| 2 | Threat list match, **Block flagged destinations** on | NXDOMAIN |
+| 3 | Site-filter match (app not exempt) | **A → 10.111.0.80** (the block address); other types → empty answer; notification |
+| 4 | Ads list match, ad blocking on for the app | NXDOMAIN |
+| 5 | Query type 65 ("HTTPS"/SVCB) while filtering and bypass protection are on | empty answer, which turns off ECH |
+
+**Connections.** `Engine.shouldBlock` also checks site filtering, using the connection's hostname (DNS cache, then TLS SNI / HTTP Host). TCP to a filtered site gets RST; a TLS/HTTP hostname that turns out to be filtered cuts the connection. Each is recorded (`ConnectionRecord.filter`) and notified.
+
+**QUIC.** While filtering, UDP 443 is dropped silently (unless the app is exempt). Browsers fall back to TCP, where the SNI check works. With **Block QUIC** off, only QUIC to a known-filtered name is dropped.
+
+**Block page.** `BlockPage` runs a tiny HTTP server on `127.0.0.1` (random port). The engine relays TCP 80 to 10.111.0.80 to it, and it answers with an HTML page (HTTP 403) built from the `Host` header: the illustration, the site and the reason. Port 443 to 10.111.0.80 is refused, because a block page over HTTPS would need a trusted certificate.
+
+**Notifications.** `Notifier.held` records the event in `BlockLog` (shown as **Recently held**) and posts a notification, at most once per app and site every 2 minutes, if notifications are allowed (Android 13+ asks when you first enable filtering). The notification opens `BlockedActivity`; its **Allow 15 min** action goes to `AllowReceiver`.
+
+**Illustration.** `res/drawable/hold_the_door.xml`, and the same artwork as SVG in `BlockPage.ART_SVG`: an original, faceless, back-lit giant holding a door frame, not a likeness of any character.
+
 ## IP locations — `data/GeoResolver.kt`
 
 - New public IPs are queued and looked up in batches of up to 100 via `http://ip-api.com/batch`.

@@ -1,8 +1,8 @@
 # Hodor user guide
 
-Hodor shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad sites, and ads and trackers.
+Hodor shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad sites, ads and trackers, and whole categories of sites.
 
-This guide covers version 0.4.0. Your version is shown at the bottom of the **Map** screen.
+This guide covers version 0.5.0. Your version is shown at the bottom of the **Map** screen.
 
 ---
 
@@ -109,6 +109,10 @@ Each port in use, with its service name, how many connections used it, and which
 
 | Card | What it's for |
 |---|---|
+| **Filter sites** | Switch whole categories on: Adult, Gambling, Social media, Dating, Piracy, Scams |
+| **Your rules** | Block or always allow one site (and its subdomains) |
+| **Recently held** | Sites Hodor stopped, which app tried, and why. Tap one for the Blocked screen, or **Allow 15m** |
+| **Bypass protection** | **Block QUIC (HTTP/3)** and **Stop encrypted-DNS and ECH bypass**, which keep site names visible so filtering can't be dodged |
 | **Block ads & trackers** | Turns ad blocking on or off; **Light** or **Normal** list; how many were blocked |
 | **Block flagged destinations** | Refuses connections to anything on the threat lists |
 | **Update schedule** | How often the lists refresh (**Daily / Weekly / Manual**) and **Only on Wi-Fi** |
@@ -137,6 +141,26 @@ The list downloads straight away. The card shows "Downloading the list…", then
 2. Turn on **Allow ads** for it.
 
 Only that app is exempted; everything else stays protected. If it still doesn't work, try **Light** instead of Normal in Shield.
+
+### Block a category of sites (e.g. gambling)
+1. Go to **Shield → Filter sites**.
+2. Turn on the category. Its list downloads straight away (sizes are shown); "Dating" is built in.
+3. On Android 13 and later, allow notifications when asked, so you hear when Hodor holds a site.
+
+From then on, any app that tries a site in that category is stopped. You get a **"Hodor held the door"** notification; tap it to see the **Blocked screen** with the site, the reason, and **Allow** buttons.
+
+### Block or allow one site
+1. Go to **Shield → Your rules**.
+2. Type the site, e.g. `tiktok.com` (pasting a full link works too), then tap **Block** or **Always allow**.
+
+A rule covers the site and all its subdomains (`tiktok.com` also covers `www.tiktok.com`). **Always allow** beats every list, including ads and threats, so use it to fix a site that's wrongly blocked. Tap a rule to remove it.
+
+### A site I need was held
+- Tap the notification → **Allow for 15 minutes** or **Always allow**, or
+- **Shield → Recently held** → **Allow 15m**, or
+- For one whole app, **Apps → Skip site filter**.
+
+Then reload the page.
 
 ### Block dangerous sites
 1. Go to **Shield**.
@@ -169,6 +193,7 @@ Lookups and connections to sites on the threat lists (malware, phishing, botnets
 | **blocked** (red) | Refused by one of your blocking settings |
 | **Flagged** (red) | The destination is on a threat list |
 | **Ad** / **Ad blocked** (violet) | The destination is an ad, tracker or telemetry domain |
+| **Held** (red) | Stopped by site filtering (a category or your rule) |
 | **DNS** | A group of name lookups |
 
 | Colour | Meaning |
@@ -177,7 +202,7 @@ Lookups and connections to sites on the threat lists (malware, phishing, botnets
 | Violet | Upload, ads and trackers |
 | Red | Known-bad destinations, blocked items, high risk |
 
-Lines starting with **⚠** name the threat list and entry that matched, for example "⚠ URLhaus: example.com". Lines starting with **◆** name the ad list match.
+Lines starting with **⚠** name the threat list and entry that matched, for example "⚠ URLhaus: example.com". Lines starting with **◆** name the ad list match, and lines starting with **⛔** say why site filtering held something, for example "⛔ Gambling: bet.example".
 
 ---
 
@@ -191,6 +216,8 @@ Lines starting with **⚠** name the threat list and entry that matched, for exa
 | ET Compromised | Hacked hosts |
 | FireHOL Level 1 | Known attack sources |
 | HaGeZi (Normal/Light) | Ads, trackers and telemetry; only downloaded while ad blocking is on |
+| Site-filter lists | Adult 1.4 MB, Gambling 2.3 MB, Social 0.1 MB, Piracy 1.1 MB, Scams 0.2 MB; only for categories you turn on. Dating is built in. |
+| HaGeZi DoH | Encrypted-DNS servers (60 KB); used by bypass protection |
 
 - Hodor checks every hour and downloads a list only when it's due under your schedule, and only if it has changed since last time.
 - A full refresh of the threat lists is about 3.3 MB; the ads list adds 1.4 to 3.4 MB.
@@ -214,6 +241,7 @@ Lines starting with **⚠** name the threat list and entry that matched, for exa
 |---|---|---|
 | Threat lists (download only) | abuse.ch, phishing.army, emergingthreats.net, GitHub | On your update schedule |
 | Ads list (download only) | GitHub (HaGeZi) | Only while ad blocking is on |
+| Site-filter lists (download only) | GitHub (HaGeZi), blocklistproject.github.io | Only for categories you turn on |
 | Public IP addresses your apps connect to | ip-api.com, over **unencrypted** HTTP | Once per new address, for the map. Turn off with **Look up IP locations**. |
 
 Nothing else is sent: no app names, no browsing content, no account. The connection log never leaves the phone.
@@ -230,6 +258,9 @@ Nothing else is sent: no app names, no browsing content, no account. The connect
 | Hostnames missing (only IP addresses) | The app may use encrypted DNS of its own, or Private DNS is set to a specific provider. |
 | The map shows nothing | Turn on **Look up IP locations**, and give it a few seconds. Local and private addresses never appear on the map. |
 | A list shows "Last download failed" | Check your connection and tap **Update now**. With **Only on Wi-Fi** on, scheduled updates wait for Wi-Fi. |
+| A site shows "This site can't be reached" | It may be held: check **Shield → Recently held**, or the notification. HTTPS sites can't show Hodor's page inside the browser, so Hodor uses a notification instead. |
+| No "held" notifications | Allow notifications for Hodor in Android settings. Repeats of the same site and app are silenced for 2 minutes. |
+| Video calls or games slower with filtering on | **Block QUIC** makes apps use TCP. Turn it off in **Bypass protection** if needed; filtering still works on DNS and site names. |
 | The Ads blocked count stays at 0 | Make sure **Block ads & trackers** is on, that the list finished downloading (Shield shows the domain count), and that the app doesn't have **Allow ads** on. |
 
 ---

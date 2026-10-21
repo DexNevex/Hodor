@@ -115,6 +115,7 @@ class TcpFlow(
                 sniff(seg.ip.data, seg.payloadOffset, len)
                 // The TLS/HTTP hostname may reveal a listed site only now.
                 if (engine.shouldBlock(record)) {
+                    engine.noteHeld(record)
                     block()
                     return
                 }

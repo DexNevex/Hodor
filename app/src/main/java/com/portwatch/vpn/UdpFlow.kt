@@ -3,6 +3,7 @@ package com.portwatch.vpn
 import android.os.SystemClock
 import com.portwatch.data.ConnectionRecord
 import com.portwatch.data.DnsCache
+import com.portwatch.data.Notifier
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -43,10 +44,23 @@ class UdpFlow(
             val name = DnsCache.queryName(data, off, len)
             if (name != null) {
                 record.host = name
-                if (engine.blocksName(record.app, name)) {
-                    engine.replyNxDomain(key, data, off, len)
-                    record.state = "blocked"
-                    return
+                val qtype = DnsCache.queryType(data, off, len)
+                val (verdict, reason) = engine.dnsVerdict(record.app, name, qtype)
+                when (verdict) {
+                    Engine.DnsVerdict.ALLOW -> {}
+                    Engine.DnsVerdict.NODATA -> return engine.replyNoData(key, data, off, len)
+                    Engine.DnsVerdict.NXDOMAIN -> {
+                        engine.replyNxDomain(key, data, off, len)
+                        record.state = "blocked"
+                        return
+                    }
+                    Engine.DnsVerdict.BLOCK_PAGE -> {
+                        engine.replyBlockPage(key, data, off, len, qtype)
+                        record.state = "blocked"
+                        record.filter = reason
+                        if (qtype == 1 || qtype == 28) Notifier.held(record.app, name, reason!!)
+                        return
+                    }
                 }
             }
         }

@@ -87,7 +87,13 @@ object ThreatIntel {
     }
 
     /** "Update now": every list, on any network. */
-    fun refresh() = worker.execute { download(activeFeeds()) }
+    fun refresh() = worker.execute {
+        download(activeFeeds())
+        Filter.refreshAll()
+    }
+
+    /** Runs [block] on the list worker, so downloads never overlap. */
+    fun onWorker(block: () -> Unit) = worker.execute(block)
 
     /** Ad blocking was switched on or off, or its level changed. */
     fun adsChanged(levelChanged: Boolean) = worker.execute {
@@ -112,13 +118,16 @@ object ThreatIntel {
     }
 
     private fun updateIfDue() {
-        val now = System.currentTimeMillis()
-        val due = activeFeeds().filter { now - prefs().getLong("updated_${it.id}", 0) > _frequency.value.maxAge }
-        if (due.isEmpty()) return
         val cm = appCtx.getSystemService(ConnectivityManager::class.java)
         if (_wifiOnly.value && cm.isActiveNetworkMetered) return
-        download(due)
+        val now = System.currentTimeMillis()
+        val due = activeFeeds().filter { now - prefs().getLong("updated_${it.id}", 0) > _frequency.value.maxAge }
+        if (due.isNotEmpty()) download(due)
+        Filter.updateIfDue(_frequency.value.maxAge)
     }
+
+    /** When [id] was last checked successfully (0 = never). */
+    fun lastUpdated(id: String) = prefs().getLong("updated_$id", 0)
 
     /** Feed name and matched domain if [host] or one of its parent domains is listed. */
     fun matchHost(host: String): String? {
@@ -158,37 +167,44 @@ object ThreatIntel {
     private fun download(which: List<Feed>) {
         _updating.value = true
         val errors = HashMap<String, String>()
-        for (feed in which) {
-            try {
+        for (feed in which) fetch(feed.id, feed.url, File(dir, "${feed.id}.txt"))?.let { errors[feed.id] = it }
+        rebuild(errors)
+        _updating.value = false
+    }
+
+    /**
+     * Downloads [url] into [file], skipping it when the server says it hasn't changed.
+     * Returns an error message, or null on success. Also used for the site-filter lists.
+     */
+    fun fetch(id: String, url: String, file: File): String? {
+        try {
                 val p = prefs()
-                val file = File(dir, "${feed.id}.txt")
-                val conn = URL(feed.url).openConnection() as HttpURLConnection
+                val conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = 15_000
                 conn.readTimeout = 60_000
                 conn.setRequestProperty("User-Agent", "Hodor (Android)")
                 if (file.exists()) {
-                    p.getString("etag_${feed.id}", null)?.let { conn.setRequestProperty("If-None-Match", it) }
-                    p.getString("modified_${feed.id}", null)?.let { conn.setRequestProperty("If-Modified-Since", it) }
+                    p.getString("etag_$id", null)?.let { conn.setRequestProperty("If-None-Match", it) }
+                    p.getString("modified_$id", null)?.let { conn.setRequestProperty("If-Modified-Since", it) }
                 }
                 when (conn.responseCode) {
                     304 -> {} // unchanged since last time; nothing downloaded
                     200 -> {
-                        val tmp = File(dir, "${feed.id}.tmp")
+                        file.parentFile?.mkdirs()
+                        val tmp = File(file.parentFile, "$id.tmp")
                         conn.inputStream.use { input -> tmp.outputStream().use { input.copyTo(it) } }
                         tmp.renameTo(file)
-                        p.edit().putString("etag_${feed.id}", conn.getHeaderField("ETag"))
-                            .putString("modified_${feed.id}", conn.getHeaderField("Last-Modified")).apply()
+                        p.edit().putString("etag_$id", conn.getHeaderField("ETag"))
+                            .putString("modified_$id", conn.getHeaderField("Last-Modified")).apply()
                     }
                     else -> throw Exception("HTTP ${conn.responseCode}")
                 }
-                p.edit().putLong("updated_${feed.id}", System.currentTimeMillis()).apply()
-            } catch (e: Exception) {
-                Log.w("Hodor", "feed ${feed.id} failed", e)
-                errors[feed.id] = e.message ?: e.javaClass.simpleName
-            }
+                p.edit().putLong("updated_$id", System.currentTimeMillis()).apply()
+                return null
+        } catch (e: Exception) {
+            Log.w("Hodor", "list $id failed", e)
+            return e.message ?: e.javaClass.simpleName
         }
-        rebuild(errors)
-        _updating.value = false
     }
 
     private fun rebuild(errors: Map<String, String>) {

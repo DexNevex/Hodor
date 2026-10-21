@@ -21,6 +21,8 @@ class ConnectionRecord(
     @Volatile var threat: String? = ThreatIntel.matchIp(remoteIp)
     /** Which ads/trackers list matches this destination, if any. */
     @Volatile var ad: String? = null
+    /** Set when site filtering held this connection, e.g. "Gambling: bet.example". */
+    @Volatile var filter: String? = null
     @Volatile var host: String? = null
         set(v) {
             field = v
@@ -47,7 +49,7 @@ class ConnectionRecord(
 
     fun view() = ConnView(
         id, protocol, uid, app.label, app.packageName, app.key, localPort,
-        remoteIp.hostAddress ?: "?", remotePort, host, threat, ad, bytesIn, bytesOut, state, active, started, lastSeen,
+        remoteIp.hostAddress ?: "?", remotePort, host, threat, ad, filter, bytesIn, bytesOut, state, active, started, lastSeen,
     )
 }
 
@@ -65,6 +67,7 @@ data class ConnView(
     val host: String?,
     val threat: String?,
     val ad: String?,
+    val filter: String?,
     val bytesIn: Long,
     val bytesOut: Long,
     val state: String,
@@ -77,7 +80,7 @@ data class ConnView(
 
     val isDns get() = remotePort == 53
 
-    fun matches(q: String) = listOf(appLabel, packageName, host, remoteIp, remotePort.toString(), service, threat, ad)
+    fun matches(q: String) = listOf(appLabel, packageName, host, remoteIp, remotePort.toString(), service, threat, ad, filter)
         .any { it?.contains(q, ignoreCase = true) == true }
 }
 

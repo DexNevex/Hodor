@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original illustration (not a likeness of any character): a back-lit giant standing in a
+     doorway, arms spread to hold the frame, light leaking around the door. Same artwork as
+     BlockPage.ART_SVG. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp" android:height="320dp"
+    android:viewportWidth="400" android:viewportHeight="320">
+    <path android:fillColor="#34E3A4" android:fillAlpha="0.15" android:pathData="M30,292 a170,14 0 1,0 340,0 a170,14 0 1,0 -340,0" />
+    <path android:fillColor="#34E3A4" android:fillAlpha="0.05" android:pathData="M50,170 a150,150 0 1,0 300,0 a150,150 0 1,0 -300,0" />
+    <path android:fillColor="#34E3A4" android:fillAlpha="0.06" android:pathData="M90,170 a110,110 0 1,0 220,0 a110,110 0 1,0 -220,0" />
+    <path android:fillColor="#2A211B" android:pathData="M130,292 L130,110 A70,70 0 0,1 270,110 L270,292 Z" />
+    <path android:strokeColor="#1C1611" android:strokeWidth="3" android:pathData="M165,50 L165,292 M200,40 L200,292 M235,50 L235,292" />
+    <path android:strokeColor="#151515" android:strokeWidth="7" android:pathData="M130,160 L270,160 M130,245 L270,245" />
+    <path android:strokeColor="#34E3A4" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M130,292 L130,110 A70,70 0 0,1 270,110 L270,292" />
+    <path android:strokeColor="#34E3A4" android:strokeAlpha="0.85" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M126,120 l-20,-8 M124,200 l-24,0 M126,270 l-18,10 M274,120 l20,-8 M276,200 l24,0 M274,270 l18,10 M200,34 L200,14 M160,46 l-10,-16 M240,46 l10,-16" />
+    <!-- back light: the silhouette drawn slightly larger in mint -->
+    <path android:fillColor="#34E3A4" android:fillAlpha="0.75" android:strokeColor="#34E3A4" android:strokeAlpha="0.75"
+        android:strokeWidth="6" android:strokeLineJoin="round" android:pathData="M150,128 C170,118 230,118 250,128 L244,214 C230,226 170,226 156,214 Z" />
+    <path android:strokeColor="#34E3A4" android:strokeAlpha="0.75" android:strokeWidth="30" android:strokeLineCap="round"
+        android:pathData="M152,134 C136,140 122,150 118,170 M248,134 C264,140 278,150 282,170 M178,214 L160,290 M222,214 L240,290" />
+    <path android:fillColor="#34E3A4" android:fillAlpha="0.75" android:pathData="M175,96 a25,25 0 1,0 50,0 a25,25 0 1,0 -50,0 M107,174 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0 M267,174 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0" />
+    <!-- the giant -->
+    <path android:fillColor="#0B0F0E" android:pathData="M150,128 C170,118 230,118 250,128 L244,214 C230,226 170,226 156,214 Z" />
+    <path android:strokeColor="#0B0F0E" android:strokeWidth="24" android:strokeLineCap="round" android:pathData="M152,134 C136,140 122,150 118,170 M248,134 C264,140 278,150 282,170 M178,214 L160,290 M222,214 L240,290" />
+    <path android:fillColor="#0B0F0E"
+        android:pathData="M178,96 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0 M110,174 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M270,174 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M138,292 a18,6 0 1,0 36,0 a18,6 0 1,0 -36,0 M226,292 a18,6 0 1,0 36,0 a18,6 0 1,0 -36,0" />
+</vector>

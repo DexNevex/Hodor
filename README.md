@@ -1,6 +1,6 @@
 # Hodor
 
-*Hold the door.* An Android app that shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad destinations, and ads and trackers. It needs no root.
+*Hold the door.* An Android app that shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad destinations, ads and trackers, and whole categories of sites. It needs no root.
 
 Built for and tested on a Pixel 9a running Android 17 (minimum Android 10).
 
@@ -14,7 +14,9 @@ Built for and tested on a Pixel 9a running Android 17 (minimum Android 10).
 | **Traffic** | Every connection: app, hostname, IP, protocol, port and service name, location, bytes in and out, and state. Each app's DNS lookups are grouped into one card. |
 | **Apps** | Per app: connections, data used, ports used, a **Block** switch, and (with ad blocking on) an **Allow ads** switch. |
 | **Ports** | Each port in use, its service name, and which apps use it. |
-| **Shield** | Ad and tracker blocking (Light or Normal list), threat lists with an update schedule, **Block flagged destinations**, and the list of flagged connections. |
+| **Shield** | **Site filtering** (categories, your block/allow rules, recently held sites, bypass protection), ad and tracker blocking (Light or Normal list), threat lists with an update schedule, **Block flagged destinations**, and the list of flagged connections. |
+
+When site filtering stops something, Hodor shows a **"Hodor held the door"** notification. Tapping it opens a full-screen Blocked screen with Allow buttons. Plain-HTTP sites get a block page in the browser; HTTPS sites can't, because the browser would show a certificate error instead.
 
 ## How it works (short version)
 
@@ -33,6 +35,7 @@ Nothing goes to a VPN server: traffic leaves through your normal Wi-Fi or mobile
 |---|---|---|
 | Threat lists | abuse.ch, phishing.army, emergingthreats.net, GitHub (FireHOL) | When due (Daily/Weekly/Manual), Wi-Fi only by default, skipped when unchanged |
 | Ads list | GitHub (HaGeZi) | Only while ad blocking is on, same schedule |
+| Site-filter lists | GitHub (HaGeZi), blocklistproject.github.io | Only for categories you turn on (and the DoH list while bypass protection is on), same schedule |
 | Public IP addresses | ip-api.com, **plain HTTP** (their free tier has no HTTPS) | Each new public IP, once; results are cached. Turn off with **Look up IP locations** on the map screen |
 
 Nothing else is sent. The connection log is kept in memory only, and is gone when the app stops. Settings, lists and the IP-location cache are stored in the app's private storage.
@@ -93,6 +96,8 @@ The Kotlin package and application ID are still `com.portwatch` (the app's origi
 
 - It holds Android's single VPN slot, so it can't run alongside another VPN or VPN-based ad blocker.
 - DNS-level ad blocking can't remove ads served from the same servers as the content (YouTube, Instagram) or hide empty ad boxes on web pages. Use Brave or uBlock Origin for websites.
+- Site filtering works on hostnames, not full URLs. Blocking one page of a site (e.g. one subreddit) needs a browser-level tool.
+- HTTPS sites can't show an in-browser block page without installing a Hodor certificate authority, which isn't done; Hodor's own Blocked screen is used instead.
 - IPv4 threat lists only. IPv6 traffic is still monitored when the network has IPv6.
 - Fragmented IP packets and IPv6 extension headers are dropped (both rare).
 - There are no automated tests yet; see [docs/TESTING.md](docs/TESTING.md) for what was checked on the device.

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.portwatch.data.ConnView
+import com.portwatch.data.Filter
 import com.portwatch.data.Geo
 import com.portwatch.data.GeoResolver
 import com.portwatch.data.Settings
@@ -95,6 +96,7 @@ fun ConnectionCard(c: ConnView, g: Geo?) {
             Spacer(Modifier.width(8.dp))
             when {
                 c.threat != null && c.state != "blocked" -> StatusChip("Flagged", Tone.Danger)
+                c.filter != null -> StatusChip("Held", Tone.Danger)
                 c.ad != null -> StatusChip(if (c.state == "blocked") "Ad blocked" else "Ad", Tone.Ad)
                 else -> StatusChip(c.state, stateTone(c.state, c.active))
             }
@@ -108,6 +110,10 @@ fun ConnectionCard(c: ConnView, g: Geo?) {
         c.threat?.let {
             Spacer(Modifier.height(8.dp))
             ThreatLine(it)
+        }
+        c.filter?.let {
+            Spacer(Modifier.height(8.dp))
+            HeldLine(it)
         }
         if (c.threat == null) c.ad?.let {
             Spacer(Modifier.height(8.dp))
@@ -152,7 +158,7 @@ private fun DnsCard(g: DnsGroup) {
                 StatusChip(
                     n,
                     when {
-                        same.any { it.threat != null } -> Tone.Danger
+                        same.any { it.threat != null || it.filter != null } -> Tone.Danger
                         same.any { it.ad != null } -> Tone.Ad
                         else -> Tone.Neutral
                     },
@@ -168,6 +174,11 @@ private fun DnsCard(g: DnsGroup) {
             Spacer(Modifier.height(6.dp))
             AdLine("$adsBlocked ad and tracker lookups blocked")
         }
+        val held = g.lookups.count { it.filter != null }
+        if (held > 0) {
+            Spacer(Modifier.height(6.dp))
+            HeldLine("$held lookups held by site filtering")
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             "Last ${time(g.newest.started)} · ${if (expanded) "tap to collapse" else "tap to show all"}",
@@ -180,6 +191,7 @@ private fun DnsCard(g: DnsGroup) {
 
 private data class AppSummary(
     val first: ConnView,
+    val held: Int,
     val adsBlocked: Int,
     val count: Int,
     val open: Int,
@@ -195,10 +207,13 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
     val blocked by Settings.blocked.collectAsState()
     val blockAds by Settings.blockAds.collectAsState()
     val adAllowed by Settings.adAllowed.collectAsState()
+    val filterOn = Filter.enabled.collectAsState().value.isNotEmpty() || Filter.rules.collectAsState().value.any { !it.allow }
+    val exempt by Filter.exempt.collectAsState()
     val apps = remember(list) {
         list.groupBy { it.uid }.map { (_, cs) ->
             AppSummary(
                 first = cs.first(),
+                held = cs.count { it.filter != null },
                 adsBlocked = cs.count { it.ad != null && it.state == "blocked" },
                 count = cs.size,
                 open = cs.count { it.active },
@@ -245,6 +260,24 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
                 if (a.flagged > 0) {
                     Spacer(Modifier.height(8.dp))
                     ThreatLine("${a.flagged} connections to known-bad destinations")
+                }
+                if (filterOn) {
+                    val skip = a.first.appKey in exempt
+                    Spacer(Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Skip site filter", style = MaterialTheme.typography.bodyMedium, color = Hodor.Ink)
+                            Text(
+                                if (skip) "Site filtering is off for this app" else "${a.held} sites held",
+                                style = MaterialTheme.typography.bodySmall, color = Hodor.Danger,
+                            )
+                        }
+                        Switch(
+                            checked = skip,
+                            onCheckedChange = { Filter.setExempt(a.first.appKey, it) },
+                            colors = hodorSwitchColors(),
+                        )
+                    }
                 }
                 if (blockAds) {
                     val allowed = a.first.appKey in adAllowed
@@ -373,6 +406,10 @@ fun ThreatsTab(list: List<ConnView>) {
     val flagged = list.filter { it.threat != null }
 
     LazyColumn(contentPadding = listPadding, verticalArrangement = listGap) {
+        item { FilterCard() }
+        item { RulesCard() }
+        item { HeldCard() }
+        item { BypassCard() }
         item { AdsCard(list) }
         item {
             HCard(Modifier.fillMaxWidth(), color = if (blockThreats) Hodor.AccentDim else Hodor.Card) {

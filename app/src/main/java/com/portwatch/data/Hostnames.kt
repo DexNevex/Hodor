@@ -18,6 +18,22 @@ object DnsCache {
         null
     }
 
+    /** Query type of an outgoing DNS query (1 = A, 28 = AAAA, 65 = HTTPS), or 0. */
+    fun queryType(b: ByteArray, off: Int, len: Int): Int = try {
+        val end = questionEnd(b, off, len) ?: 0
+        if (end >= off + 4) u16(b, end - 4) else 0
+    } catch (_: Exception) {
+        0
+    }
+
+    /** Index just past the first question (name, type, class), or null. */
+    fun questionEnd(b: ByteArray, off: Int, len: Int): Int? = try {
+        if (len < 12 || u16(b, off + 4) == 0) null
+        else readName(b, off, off + 12, off + len).second.let { if (it + 4 <= off + len) it + 4 else null }
+    } catch (_: Exception) {
+        null
+    }
+
     fun onResponse(b: ByteArray, off: Int, len: Int) {
         try {
             parse(b, off, off + len)
