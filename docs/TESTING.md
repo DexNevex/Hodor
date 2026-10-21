@@ -6,7 +6,7 @@ There are no automated tests yet. Each version was checked by hand on the target
 
 Threat-list checks used DNS lookups only: `ping` from the debug shell resolves the name, and Hodor doesn't relay ping packets, so nothing actually reached the listed hosts.
 
-## 0.5.0 — site filtering (partly tested 21 Oct 2026)
+## 0.5.0 — site filtering (tested 21 Oct 2026)
 
 | Check | Result |
 |---|---|
@@ -18,12 +18,17 @@ Threat-list checks used DNS lookups only: `ping` from the debug shell resolves t
 | Notifications grouped and rate-limited | ✅ four notifications (neverssl, reddit, www., old.) grouped under Hodor |
 | HTTPS to the block address is refused | ✅ connection refused on 443 |
 | Encrypted-DNS bypass blocked | ✅ DoH list downloaded (59 KB); `dns.google`, `cloudflare-dns.com`, `dns.quad9.net` → 10.111.0.80 |
-| Category list download and blocking | ⬜ not yet tested |
-| Blocked screen (from notification / Recently held) and its Allow buttons | ⬜ not yet tested |
-| Allow rule beating a list; "Allow 15 min" | ⬜ not yet tested |
-| QUIC fallback; per-app "Skip site filter"; ECH (HTTPS-record) suppression | ⬜ not yet tested |
+| Category: turning on **Social media** downloads its list and blocks | ✅ 137 KB downloaded; `tiktok.com`, `www.instagram.com`, `snapchat.com` → 10.111.0.80; Wikipedia unaffected |
+| An allow rule beats a category, and covers only that name and below | ✅ allow `www.snapchat.com` → real address (34.149.46.130); `accounts.snapchat.com` and TikTok stay blocked |
+| **Recently held** lists held sites; tapping one opens the Blocked screen | ✅ illustration, "HODOR HELD THE DOOR", `www.reddit.com`, "Your rule: reddit.com", "Chrome tried to open this site", three buttons |
+| Blocked screen **Allow for 15 minutes** | ✅ `www.reddit.com` resolves again (146.75.89.140) after the 60 s cached answer; `old.reddit.com` stays blocked |
+| DNS card shows held lookups | ✅ "⛔ 14 lookups held by site filtering", held names in red |
+| Per-app **Skip site filter** | ✅ on for Shell: `www.tiktok.com` resolves normally; off again: `us.tiktok.com` → 10.111.0.80 |
+| QUIC dropped while filtering | ✅ no UDP 443 (QUIC) connections recorded after filtering began; Chrome searches loaded over TCP. Before 0.5.0, Chrome used QUIC constantly |
+| The notification's own **Allow 15 min** button | ⬜ not tapped (same allow function as the Blocked screen, which passed) |
+| ECH suppression (empty answer to HTTPS records) | ⬜ not observed directly; no tool on the phone sends type-65 queries |
 
-Testing paused because the phone was in use.
+After testing, the phone was returned to its earlier settings: no rules, no categories, no exemptions. Notification permission was granted for the test and left on, so held sites are announced.
 
 ## 0.4.0 — ad blocking (tested 21 Oct 2026)
 
