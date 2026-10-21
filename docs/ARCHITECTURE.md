@@ -187,7 +187,7 @@ List metadata (timestamps, ETags, schedule, Wi-Fi only) is stored in the prefere
 
 | File | Contents |
 |---|---|
-| `Theme.kt` | colour palette (`Hodor` object), Outfit and Oxanium fonts, type scale |
+| `Theme.kt` | light and dark palettes (`Hodor` reads the current one from Compose state, so a switch redraws everything), the Inter font, iOS-style type scale, `HodorTheme` |
 | `Components.kt` | cards, pills, status chips, app icons, sparkline, segmented bar, power button, formatting helpers |
 | `MainScreen.kt` | background glow, header (logo, LIVE chip, clear, search), bottom navigation |
 | `HomeTab.kt` | map-first home: world map (projection, country shading, dot clustering, zoom), status, speeds, totals, protection score, ads summary, countries, version |

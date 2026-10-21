@@ -250,13 +250,13 @@ private fun Dock(selected: Int, modifier: Modifier, onSelect: (Int) -> Unit) {
             Box {
                 Box(
                     Modifier.size(56.dp).clip(CircleShape)
-                        .background(if (on) Hodor.Card else Hodor.DarkRow)
+                        .background(if (on) Color.White else Hodor.DarkRow)
                         .clickable { onSelect(item.screen) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(
                         painterResource(item.icon), contentDescription = item.label,
-                        colorFilter = ColorFilter.tint(if (on) Hodor.Ink else Hodor.OnDark),
+                        colorFilter = ColorFilter.tint(if (on) Color(0xFF1C1C1E) else Hodor.OnDark),
                         modifier = Modifier.size(24.dp),
                     )
                 }
