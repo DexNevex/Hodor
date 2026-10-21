@@ -6,6 +6,20 @@ There are no automated tests yet. Each version was checked by hand on the target
 
 Threat-list checks used DNS lookups only: `ping` from the debug shell resolves the name, and Hodor doesn't relay ping packets, so nothing actually reached the listed hosts.
 
+## 0.6.0 — Allow fix and light design (tested 22 Oct 2026)
+
+| Check | Result |
+|---|---|
+| New design on the phone: header, bell, ⋮ menu, status pill, map, speed card, country strip, summary rows, floating dock | ✅ |
+| Bell opens Shield → Recently held | ✅ |
+| ⋮ menu → Start watching starts monitoring | ✅ |
+| Shield → Threat lists page with "‹ Shield" back link | ✅ |
+| **Allow takes effect straight away** | ✅ a gambling site held in Chrome (Gambling category); **Allow 15m** in Recently held; Chrome reloaded and showed the real site about 9 s later (well inside the old 60 s cache window) |
+| Allow covers the whole site | ✅ after allowing a held site, a never-looked-up subdomain of it resolved to its real address |
+| Chrome reconnects to the real server after Allow | ✅ new connections went to the site's real address instead of the block address. (One test site then reset the connection itself because it refuses that network; that is the site, not Hodor.) |
+| The notification's own **Allow 15 min** button | ⬜ not reachable in testing: Do Not Disturb (Bedtime mode) hides Hodor's notifications from the shade; it calls the same allow function |
+| The status pill's start button | ⬜ only the menu path was confirmed; early taps on the pill landed while the screen was scrolled or in use |
+
 ## 0.5.0 — site filtering (tested 21 Oct 2026)
 
 | Check | Result |

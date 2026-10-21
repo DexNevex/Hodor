@@ -2,7 +2,7 @@
 
 Hodor shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad sites, ads and trackers, and whole categories of sites.
 
-This guide covers version 0.5.0. Your version is shown at the bottom of the **Map** screen.
+This guide covers version 0.6.0. Your version is shown at the bottom of the **Map** screen.
 
 ---
 
@@ -33,22 +33,20 @@ To stop, tap **LIVE** again or the power button. The chip changes to **OFF**.
 
 ## 3. Finding your way around
 
-```
-┌────────────────────────────────────────┐
-│ [logo] HODOR  ● LIVE        🗑   🔍     │  ← header
-│                                        │
-│            (screen content)            │
-│                                        │
-│  MAP  TRAFFIC  APPS  PORTS  SHIELD     │  ← bottom bar
-└────────────────────────────────────────┘
-```
-
 | Control | What it does |
 |---|---|
-| **● LIVE / ○ OFF** | Starts or stops watching |
-| 🗑 **Clear** | Removes finished connections from the lists (open ones stay) |
-| 🔍 **Search** | Filters every screen by app name, hostname, IP address, port number, or list name. Tap ✕ to clear it. |
-| Bottom bar | Switches between the five screens |
+| **Dock** (dark bar at the bottom) | Home · Traffic · Apps · Shield. The selected screen's button is white with a lime dot. |
+| **Bell** (top right) | Opens **Shield → Recently held**. A red dot means a site was held. |
+| **⋮ menu** (top right) | Search, Ports, Threat lists, Clear closed connections, Start/Stop watching, About |
+| **Status pill** (top of Home) | Shows Watching / Not watching and the uptime; the round button on its right starts or stops watching |
+| **Search** (from the ⋮ menu) | Filters every screen by app, site, IP address, port, or list name |
+
+**Shield** is a menu in three groups:
+- **Filtering:** Site filter, Your rules, Recently held
+- **Blocking:** Ads & trackers, Threat lists
+- **Settings:** Bypass protection, Location lookups
+
+Each row shows a one-line summary; tap it to open its page, and tap **‹ Shield** (or Back) to return.
 
 ---
 
@@ -156,6 +154,7 @@ From then on, any app that tries a site in that category is stopped. You get a *
 A rule covers the site and all its subdomains (`tiktok.com` also covers `www.tiktok.com`). **Always allow** beats every list, including ads and threats, so use it to fix a site that's wrongly blocked. Tap a rule to remove it.
 
 ### A site I need was held
+Allowing works straight away (reload the page) and covers the whole site, e.g. allowing `www.instagram.com` allows everything on `instagram.com`.
 - Tap the notification → **Allow for 15 minutes** or **Always allow**, or
 - **Shield → Recently held** → **Allow 15m**, or
 - For one whole app, **Apps → Skip site filter**.
@@ -259,7 +258,8 @@ Nothing else is sent: no app names, no browsing content, no account. The connect
 | The map shows nothing | Turn on **Look up IP locations**, and give it a few seconds. Local and private addresses never appear on the map. |
 | A list shows "Last download failed" | Check your connection and tap **Update now**. With **Only on Wi-Fi** on, scheduled updates wait for Wi-Fi. |
 | A site shows "This site can't be reached" | It may be held: check **Shield → Recently held**, or the notification. HTTPS sites can't show Hodor's page inside the browser, so Hodor uses a notification instead. |
-| No "held" notifications | Allow notifications for Hodor in Android settings. Repeats of the same site and app are silenced for 2 minutes. |
+| No "held" notifications | Bedtime mode or Do Not Disturb hides them: the bell's red dot and **Recently held** still show everything. |
+| No "held" notifications (other causes) | Allow notifications for Hodor in Android settings. Repeats of the same site and app are silenced for 2 minutes. |
 | Video calls or games slower with filtering on | **Block QUIC** makes apps use TCP. Turn it off in **Bypass protection** if needed; filtering still works on DNS and site names. |
 | The Ads blocked count stays at 0 | Make sure **Block ads & trackers** is on, that the list finished downloading (Shield shows the domain count), and that the app doesn't have **Allow ads** on. |
 
