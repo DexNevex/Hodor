@@ -5,11 +5,13 @@ import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.Log
+import com.portwatch.data.AppInfo
 import com.portwatch.data.AppResolver
 import com.portwatch.data.ConnectionLog
 import com.portwatch.data.ConnectionRecord
 import com.portwatch.data.DnsCache
 import com.portwatch.data.Settings
+import com.portwatch.data.ThreatIntel
 import com.portwatch.data.Traffic
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -147,7 +149,14 @@ class Engine(
     }
 
     fun shouldBlock(r: ConnectionRecord) =
-        Settings.isBlocked(r.app) || (Settings.blockThreats.value && r.threat != null)
+        Settings.isBlocked(r.app) ||
+            (Settings.blockThreats.value && r.threat != null) ||
+            (r.ad != null && Settings.adsBlockedFor(r.app))
+
+    /** Whether a DNS query for [name] from [app] should get NXDOMAIN. */
+    fun blocksName(app: AppInfo, name: String) =
+        (Settings.blockThreats.value && ThreatIntel.matchHost(name) != null) ||
+            (Settings.adsBlockedFor(app) && ThreatIntel.matchAd(name) != null)
 
     /** Cuts open connections that a newly blocked app or threat rule now forbids. */
     private fun applyRules() {

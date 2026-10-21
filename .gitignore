@@ -4,3 +4,4 @@ local.properties
 *.apk
 .idea/
 .kotlin/
+.DS_Store

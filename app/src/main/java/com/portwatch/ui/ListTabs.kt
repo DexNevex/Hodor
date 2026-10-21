@@ -25,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -92,8 +93,11 @@ fun ConnectionCard(c: ConnView, g: Geo?) {
                 Text(c.host ?: c.remoteIp, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.width(8.dp))
-            if (c.threat != null && c.state != "blocked") StatusChip("Flagged", Tone.Danger)
-            else StatusChip(c.state, stateTone(c.state, c.active))
+            when {
+                c.threat != null && c.state != "blocked" -> StatusChip("Flagged", Tone.Danger)
+                c.ad != null -> StatusChip(if (c.state == "blocked") "Ad blocked" else "Ad", Tone.Ad)
+                else -> StatusChip(c.state, stateTone(c.state, c.active))
+            }
         }
         Spacer(Modifier.height(14.dp))
         Row {
@@ -104,6 +108,10 @@ fun ConnectionCard(c: ConnView, g: Geo?) {
         c.threat?.let {
             Spacer(Modifier.height(8.dp))
             ThreatLine(it)
+        }
+        if (c.threat == null) c.ad?.let {
+            Spacer(Modifier.height(8.dp))
+            AdLine(it)
         }
         Spacer(Modifier.height(10.dp))
         Row {
@@ -125,6 +133,7 @@ private fun DnsCard(g: DnsGroup) {
         g.lookups.mapNotNull { it.host?.takeUnless { h -> h.startsWith("DNS via") } }.distinct()
     }
     val bad = g.lookups.mapNotNull { it.threat }.distinct()
+    val adsBlocked = g.lookups.count { it.ad != null && it.state == "blocked" }
     HCard(Modifier.fillMaxWidth(), color = Hodor.Card, onClick = { expanded = !expanded }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppIcon(g.newest.packageName)
@@ -139,14 +148,25 @@ private fun DnsCard(g: DnsGroup) {
         val shown = if (expanded) names.take(100) else names.take(4)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             shown.forEach { n ->
-                val flagged = g.lookups.any { it.host == n && it.threat != null }
-                StatusChip(n, if (flagged) Tone.Danger else Tone.Neutral)
+                val same = g.lookups.filter { it.host == n }
+                StatusChip(
+                    n,
+                    when {
+                        same.any { it.threat != null } -> Tone.Danger
+                        same.any { it.ad != null } -> Tone.Ad
+                        else -> Tone.Neutral
+                    },
+                )
             }
             if (names.size > shown.size) StatusChip("+${names.size - shown.size} more", Tone.Warn)
         }
         if (bad.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             ThreatLine(if (bad.size == 1) bad[0] else "${bad.size} known-bad names")
+        }
+        if (adsBlocked > 0) {
+            Spacer(Modifier.height(6.dp))
+            AdLine("$adsBlocked ad and tracker lookups blocked")
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -160,6 +180,7 @@ private fun DnsCard(g: DnsGroup) {
 
 private data class AppSummary(
     val first: ConnView,
+    val adsBlocked: Int,
     val count: Int,
     val open: Int,
     val flagged: Int,
@@ -172,10 +193,13 @@ private data class AppSummary(
 fun AppsTab(list: List<ConnView>, running: Boolean) {
     if (list.isEmpty()) return EmptyHint(running)
     val blocked by Settings.blocked.collectAsState()
+    val blockAds by Settings.blockAds.collectAsState()
+    val adAllowed by Settings.adAllowed.collectAsState()
     val apps = remember(list) {
         list.groupBy { it.uid }.map { (_, cs) ->
             AppSummary(
                 first = cs.first(),
+                adsBlocked = cs.count { it.ad != null && it.state == "blocked" },
                 count = cs.size,
                 open = cs.count { it.active },
                 flagged = cs.count { it.threat != null },
@@ -222,6 +246,25 @@ fun AppsTab(list: List<ConnView>, running: Boolean) {
                     Spacer(Modifier.height(8.dp))
                     ThreatLine("${a.flagged} connections to known-bad destinations")
                 }
+                if (blockAds) {
+                    val allowed = a.first.appKey in adAllowed
+                    Spacer(Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Allow ads", style = MaterialTheme.typography.bodyMedium, color = Hodor.Ink)
+                            Text(
+                                if (allowed) "Ad blocking is off for this app"
+                                else "${a.adsBlocked} ad and tracker requests blocked",
+                                style = MaterialTheme.typography.bodySmall, color = Hodor.Violet,
+                            )
+                        }
+                        Switch(
+                            checked = allowed,
+                            onCheckedChange = { Settings.setAdAllowed(a.first.appKey, it) },
+                            colors = hodorSwitchColors(),
+                        )
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     a.ports.forEach { (port, n) -> StatusChip("$port ×$n", Tone.Neutral) }
@@ -261,6 +304,60 @@ fun PortsTab(list: List<ConnView>, running: Boolean) {
     }
 }
 
+// ---------- Shield: ads and threats ----------
+
+@Composable
+private fun AdsCard(list: List<ConnView>) {
+    val blockAds by Settings.blockAds.collectAsState()
+    val level by Settings.adLevel.collectAsState()
+    val status by ThreatIntel.adStatus.collectAsState()
+    val updating by ThreatIntel.updating.collectAsState()
+    val blockedCount = list.count { it.ad != null && it.state == "blocked" }
+    HCard(Modifier.fillMaxWidth(), color = if (blockAds) Color(0xFF1A1730) else Hodor.Card) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Block ads & trackers", style = MaterialTheme.typography.titleMedium, color = Hodor.Ink)
+                Text(
+                    "Answers lookups for ad, tracker and telemetry domains with \"no such domain\", in every app.",
+                    style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
+                )
+            }
+            Switch(checked = blockAds, onCheckedChange = { Settings.setBlockAds(it) }, colors = hodorSwitchColors())
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            ThreatIntel.AdLevel.entries.forEach { l ->
+                Pill(
+                    l.label,
+                    bg = if (l == level) Hodor.Violet else Hodor.Pill,
+                    fg = if (l == level) Hodor.OnAccent else Hodor.Ink,
+                    onClick = { Settings.setAdLevel(l) },
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (blockAds) {
+                Text("$blockedCount", fontFamily = Oxanium, fontSize = 26.sp, color = Hodor.Violet)
+                Text(" blocked", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            when {
+                !blockAds -> "Light ≈ 1.4 MB, Normal ≈ 3.4 MB. Downloaded only while this is on."
+                status == null || (status!!.entries == 0 && updating) -> "Downloading the list…"
+                else -> "${status!!.feed.name} · %,d domains · ${bytes(status!!.bytes)}".format(status!!.entries)
+            },
+            style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
+        )
+        status?.error?.let { ThreatLine("Last download failed: $it") }
+        Text(
+            "Ads served from the same servers as the content (YouTube, Instagram) can't be blocked this way.",
+            style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
 // ---------- Threats ----------
 
 private val dateFormat = SimpleDateFormat("d MMM HH:mm", Locale.getDefault())
@@ -276,6 +373,7 @@ fun ThreatsTab(list: List<ConnView>) {
     val flagged = list.filter { it.threat != null }
 
     LazyColumn(contentPadding = listPadding, verticalArrangement = listGap) {
+        item { AdsCard(list) }
         item {
             HCard(Modifier.fillMaxWidth(), color = if (blockThreats) Hodor.AccentDim else Hodor.Card) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

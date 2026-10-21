@@ -14,7 +14,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * Downloads public threat feeds and answers "is this host or IP known bad?".
+ * Downloads public threat feeds and answers "is this host or IP known bad?", plus
+ * an optional ads-and-trackers list (only fetched while ad blocking is on).
  * Lists are kept as files in app storage. An hourly check downloads the ones that
  * are due, asking the server first whether they changed (ETag / Last-Modified).
  */
@@ -45,15 +46,30 @@ object ThreatIntel {
             "Attack sources and hijacked networks"),
     )
 
+    /** HaGeZi DNS blocklists, wildcard form: each domain also covers its subdomains. */
+    enum class AdLevel(val label: String, val url: String) {
+        LIGHT("Light", "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt"),
+        NORMAL("Normal", "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/multi-onlydomains.txt"),
+    }
+
+    fun adsFeed() = Settings.adLevel.value.let {
+        Feed("ads", "HaGeZi ${it.label}", it.url, Kind.DOMAINS, "Ads, trackers and telemetry")
+    }
+
+    private fun activeFeeds() = if (Settings.blockAds.value) feeds + adsFeed() else feeds
+
     private val worker = Executors.newSingleThreadScheduledExecutor()
     private lateinit var dir: File
     private lateinit var appCtx: Context
 
     @Volatile private var domains: Map<String, String> = emptyMap()
     @Volatile private var ranges: List<Pair<String, IpRanges>> = emptyList()
+    @Volatile private var adDomains: Set<String> = emptySet()
 
     private val _status = MutableStateFlow<List<FeedStatus>>(emptyList())
     val status: StateFlow<List<FeedStatus>> = _status
+    private val _adStatus = MutableStateFlow<FeedStatus?>(null)
+    val adStatus: StateFlow<FeedStatus?> = _adStatus
     private val _updating = MutableStateFlow(false)
     val updating: StateFlow<Boolean> = _updating
     private val _frequency = MutableStateFlow(Frequency.DAILY)
@@ -71,7 +87,17 @@ object ThreatIntel {
     }
 
     /** "Update now": every list, on any network. */
-    fun refresh() = worker.execute { download(feeds) }
+    fun refresh() = worker.execute { download(activeFeeds()) }
+
+    /** Ad blocking was switched on or off, or its level changed. */
+    fun adsChanged(levelChanged: Boolean) = worker.execute {
+        val file = File(dir, "ads.txt")
+        if (levelChanged) {
+            file.delete()
+            prefs().edit().remove("etag_ads").remove("modified_ads").remove("updated_ads").apply()
+        }
+        if (Settings.blockAds.value && !file.exists()) download(listOf(adsFeed())) else rebuild(emptyMap())
+    }
 
     fun setFrequency(f: Frequency) {
         _frequency.value = f
@@ -87,7 +113,7 @@ object ThreatIntel {
 
     private fun updateIfDue() {
         val now = System.currentTimeMillis()
-        val due = feeds.filter { now - prefs().getLong("updated_${it.id}", 0) > _frequency.value.maxAge }
+        val due = activeFeeds().filter { now - prefs().getLong("updated_${it.id}", 0) > _frequency.value.maxAge }
         if (due.isEmpty()) return
         val cm = appCtx.getSystemService(ConnectivityManager::class.java)
         if (_wifiOnly.value && cm.isActiveNetworkMetered) return
@@ -103,6 +129,19 @@ object ThreatIntel {
             map[h]?.let { return "$it: $h" }
             val dot = h.indexOf('.')
             if (dot < 0 || h.indexOf('.', dot + 1) < 0) return null // stop at the registrable part
+            h = h.substring(dot + 1)
+        }
+    }
+
+    /** List name and matched domain if [host] or a parent domain is an ad/tracker domain. */
+    fun matchAd(host: String): String? {
+        val set = adDomains
+        if (set.isEmpty()) return null
+        var h = host.lowercase().trimEnd('.')
+        while (true) {
+            if (h in set) return "HaGeZi: $h"
+            val dot = h.indexOf('.')
+            if (dot < 0 || h.indexOf('.', dot + 1) < 0) return null
             h = h.substring(dot + 1)
         }
     }
@@ -126,7 +165,7 @@ object ThreatIntel {
                 val conn = URL(feed.url).openConnection() as HttpURLConnection
                 conn.connectTimeout = 15_000
                 conn.readTimeout = 60_000
-                conn.setRequestProperty("User-Agent", "Hodor/0.2 (Android)")
+                conn.setRequestProperty("User-Agent", "Hodor (Android)")
                 if (file.exists()) {
                     p.getString("etag_${feed.id}", null)?.let { conn.setRequestProperty("If-None-Match", it) }
                     p.getString("modified_${feed.id}", null)?.let { conn.setRequestProperty("If-Modified-Since", it) }
@@ -184,6 +223,22 @@ object ThreatIntel {
         domains = newDomains
         ranges = newRanges
         _status.value = statuses
+
+        // The ads list is large, so it is only held in memory while ad blocking is on.
+        val adsFile = File(dir, "ads.txt")
+        if (Settings.blockAds.value && adsFile.exists()) {
+            val set = HashSet<String>(200_000)
+            try {
+                adsFile.forEachLine { line -> parseDomain(line, Kind.DOMAINS)?.let { set.add(it) } }
+            } catch (e: Exception) {
+                Log.w("Hodor", "parse ads failed", e)
+            }
+            adDomains = set
+            _adStatus.value = FeedStatus(adsFeed(), set.size, adsFile.length(), prefs().getLong("updated_ads", 0), errors["ads"])
+        } else {
+            adDomains = emptySet()
+            _adStatus.value = errors["ads"]?.let { FeedStatus(adsFeed(), 0, 0, 0, it) }
+        }
     }
 
     private fun parseDomain(line: String, kind: Kind): String? {

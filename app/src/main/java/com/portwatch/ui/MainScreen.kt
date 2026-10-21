@@ -48,8 +48,8 @@ import com.portwatch.R
 import com.portwatch.data.ConnectionLog
 import com.portwatch.vpn.PortWatchVpnService
 
-private val sections = listOf("MAP", "TRAFFIC", "APPS", "PORTS", "THREATS")
-private val titles = listOf("", "Traffic", "Apps", "Ports", "Threats")
+private val sections = listOf("MAP", "TRAFFIC", "APPS", "PORTS", "SHIELD")
+private val titles = listOf("", "Traffic", "Apps", "Ports", "Shield")
 
 @Composable
 fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {

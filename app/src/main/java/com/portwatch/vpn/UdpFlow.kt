@@ -3,8 +3,6 @@ package com.portwatch.vpn
 import android.os.SystemClock
 import com.portwatch.data.ConnectionRecord
 import com.portwatch.data.DnsCache
-import com.portwatch.data.Settings
-import com.portwatch.data.ThreatIntel
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -45,7 +43,7 @@ class UdpFlow(
             val name = DnsCache.queryName(data, off, len)
             if (name != null) {
                 record.host = name
-                if (Settings.blockThreats.value && ThreatIntel.matchHost(name) != null) {
+                if (engine.blocksName(record.app, name)) {
                     engine.replyNxDomain(key, data, off, len)
                     record.state = "blocked"
                     return

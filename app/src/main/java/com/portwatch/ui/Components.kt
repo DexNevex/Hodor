@@ -99,7 +99,7 @@ fun CircleButton(
 fun CircleIcon(icon: ImageVector, onClick: () -> Unit, bg: Color = Hodor.Pill, tint: Color = Hodor.Ink) =
     CircleButton(onClick, bg = bg) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
 
-enum class Tone { Ok, Danger, Neutral, Warn }
+enum class Tone { Ok, Danger, Neutral, Warn, Ad }
 
 /** Small "● open" style badge. */
 @Composable
@@ -109,6 +109,7 @@ fun StatusChip(text: String, tone: Tone) {
         Tone.Danger -> Hodor.DangerTint to Hodor.Danger
         Tone.Warn -> Hodor.AccentDim to Hodor.Ink
         Tone.Neutral -> Hodor.Pill to Hodor.Muted
+        Tone.Ad -> Color(0xFF221D3D) to Hodor.Violet
     }
     Row(
         Modifier.clip(CircleShape).background(bg).padding(horizontal = 10.dp, vertical = 4.dp),
@@ -145,6 +146,17 @@ fun ThreatLine(text: String, color: Color = Hodor.Danger) {
         style = MaterialTheme.typography.bodySmall,
         color = color,
         maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+fun AdLine(text: String) {
+    Text(
+        "◆ $text",
+        style = MaterialTheme.typography.bodySmall,
+        color = Hodor.Violet,
+        maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
 }

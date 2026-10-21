@@ -88,7 +88,9 @@ fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: 
             }
         }
         item { ProtectionCard(list, running) { goTo(4) } }
+        item { AdsSummaryCard(list) { goTo(4) } }
         item { CountriesCard(list) }
+        item { VersionFooter() }
     }
 }
 
@@ -218,6 +220,41 @@ private fun ProtectionCard(list: List<ConnView>, running: Boolean, open: () -> U
             }
         }
     }
+}
+
+@Composable
+private fun AdsSummaryCard(list: List<ConnView>, open: () -> Unit) {
+    val blockAds by Settings.blockAds.collectAsState()
+    val adLookups = list.count { it.ad != null }
+    val blocked = list.count { it.ad != null && it.state == "blocked" }
+    HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 18.dp, onClick = open) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("ADS BLOCKED", style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp)
+                Text(
+                    if (blockAds) "$adLookups ad and tracker requests seen" else "OFF · TAP TO SET UP",
+                    style = MaterialTheme.typography.labelSmall, color = if (blockAds) Hodor.Violet else Hodor.Muted,
+                )
+            }
+            Text("$blocked", fontFamily = Oxanium, fontSize = 34.sp, color = if (blockAds) Hodor.Ink else Hodor.Muted)
+        }
+        if (blockAds) {
+            Spacer(Modifier.height(10.dp))
+            SegmentBar(if (adLookups == 0) 0f else blocked.toFloat() / adLookups, Hodor.Violet, Modifier.fillMaxWidth().height(10.dp), segments = 28)
+        }
+    }
+}
+
+@Composable
+private fun VersionFooter() {
+    val ctx = LocalContext.current
+    val info = remember { ctx.packageManager.getPackageInfo(ctx.packageName, 0) }
+    Text(
+        "HODOR v${info.versionName} · BUILD ${info.longVersionCode}",
+        style = MaterialTheme.typography.labelSmall, color = Hodor.Muted,
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+    )
 }
 
 // ---------- map ----------

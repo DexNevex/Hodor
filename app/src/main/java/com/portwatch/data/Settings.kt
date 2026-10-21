@@ -8,7 +8,7 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.util.concurrent.CopyOnWriteArrayList
 
-/** User choices that survive restarts: blocked apps, threat blocking, online IP lookups. */
+/** User choices that survive restarts: blocked apps, threat and ad blocking, online IP lookups. */
 object Settings {
     private lateinit var prefs: SharedPreferences
 
@@ -18,6 +18,13 @@ object Settings {
     val blockThreats: StateFlow<Boolean> = _blockThreats
     private val _geoOnline = MutableStateFlow(true)
     val geoOnline: StateFlow<Boolean> = _geoOnline
+    private val _blockAds = MutableStateFlow(false)
+    val blockAds: StateFlow<Boolean> = _blockAds
+    private val _adLevel = MutableStateFlow(ThreatIntel.AdLevel.NORMAL)
+    val adLevel: StateFlow<ThreatIntel.AdLevel> = _adLevel
+    /** Apps exempted from ad blocking (keys as in [blocked]). */
+    private val _adAllowed = MutableStateFlow<Set<String>>(emptySet())
+    val adAllowed: StateFlow<Set<String>> = _adAllowed
 
     /** Called (on the caller's thread) whenever blocking rules change. */
     val ruleListeners = CopyOnWriteArrayList<() -> Unit>()
@@ -27,6 +34,32 @@ object Settings {
         _blocked.value = prefs.getStringSet("blocked", emptySet())!!.toSet()
         _blockThreats.value = prefs.getBoolean("block_threats", false)
         _geoOnline.value = prefs.getBoolean("geo_online", true)
+        _blockAds.value = prefs.getBoolean("block_ads", false)
+        _adLevel.value = ThreatIntel.AdLevel.valueOf(prefs.getString("ad_level", ThreatIntel.AdLevel.NORMAL.name)!!)
+        _adAllowed.value = prefs.getStringSet("ad_allowed", emptySet())!!.toSet()
+    }
+
+    fun adsBlockedFor(app: AppInfo) = _blockAds.value && app.key !in _adAllowed.value
+
+    fun setBlockAds(on: Boolean) {
+        _blockAds.value = on
+        prefs.edit().putBoolean("block_ads", on).apply()
+        ThreatIntel.adsChanged(levelChanged = false)
+        ruleListeners.forEach { it() }
+    }
+
+    fun setAdLevel(level: ThreatIntel.AdLevel) {
+        if (level == _adLevel.value) return
+        _adLevel.value = level
+        prefs.edit().putString("ad_level", level.name).apply()
+        ThreatIntel.adsChanged(levelChanged = true)
+    }
+
+    fun setAdAllowed(key: String, allow: Boolean) {
+        val s = if (allow) _adAllowed.value + key else _adAllowed.value - key
+        _adAllowed.value = s
+        prefs.edit().putStringSet("ad_allowed", s).apply()
+        ruleListeners.forEach { it() }
     }
 
     fun isBlocked(app: AppInfo) = app.key in _blocked.value

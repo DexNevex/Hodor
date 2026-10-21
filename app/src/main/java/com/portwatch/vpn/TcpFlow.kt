@@ -2,7 +2,6 @@ package com.portwatch.vpn
 
 import android.os.SystemClock
 import com.portwatch.data.ConnectionRecord
-import com.portwatch.data.Settings
 import com.portwatch.data.Sniffer
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -115,7 +114,7 @@ class TcpFlow(
                 record.bytesOut += len
                 sniff(seg.ip.data, seg.payloadOffset, len)
                 // The TLS/HTTP hostname may reveal a listed site only now.
-                if (record.threat != null && Settings.blockThreats.value) {
+                if (engine.shouldBlock(record)) {
                     block()
                     return
                 }
