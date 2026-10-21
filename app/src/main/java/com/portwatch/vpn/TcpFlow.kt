@@ -18,10 +18,19 @@ import kotlin.random.Random
 class TcpFlow(
     private val engine: Engine,
     private val key: FlowKey,
-    target: InetSocketAddress,
+    target: InetSocketAddress?,
     val record: ConnectionRecord,
     syn: TcpSegment,
 ) : SelectHandler {
+
+    /**
+     * True for connections to the block address (a site that was filtered when it was looked
+     * up). They are accepted locally first; once the site name is read from the first bytes,
+     * the engine decides where they really go: the real site if it has since been allowed,
+     * the block page (HTTP), or nowhere.
+     */
+    private val deferred = target == null
+    private var routed = false
 
     private enum class State { CONNECTING, SYN_RECEIVED, ESTABLISHED }
 
@@ -53,10 +62,15 @@ class TcpFlow(
             channel.configureBlocking(false)
             // Local (block page) connections never enter the VPN; protecting them would bind
             // them to the Wi-Fi/mobile network, where loopback isn't reachable.
-            if (!target.address.isLoopbackAddress) engine.vpn.protect(channel.socket())
-            val connected = channel.connect(target)
-            selKey = channel.register(engine.selector, SelectionKey.OP_CONNECT, this)
-            if (connected) onConnected()
+            if (target == null) {
+                selKey = channel.register(engine.selector, 0, this)
+                onConnected() // answer the app now; the real connection follows the site name
+            } else {
+                if (!target.address.isLoopbackAddress) engine.vpn.protect(channel.socket())
+                val connected = channel.connect(target)
+                selKey = channel.register(engine.selector, SelectionKey.OP_CONNECT, this)
+                if (connected) onConnected()
+            }
         } catch (e: Exception) {
             try { channel.close() } catch (_: IOException) {}
             throw e
@@ -64,7 +78,9 @@ class TcpFlow(
     }
 
     override fun onReady(key: SelectionKey) {
-        if (key.isConnectable && channel.finishConnect()) onConnected()
+        if (key.isConnectable && channel.finishConnect()) {
+            if (deferred) flushToServer() else onConnected()
+        }
         if (key.isValid && key.isReadable) readFromServer()
         if (key.isValid && key.isWritable) flushToServer()
         updateInterest()
@@ -115,6 +131,10 @@ class TcpFlow(
                 clientNext += len
                 record.bytesOut += len
                 sniff(seg.ip.data, seg.payloadOffset, len)
+                if (deferred && !routed && sniffBuf == null) {
+                    routed = true
+                    engine.routeDeferred(this, record.host.takeIf { record.hostFromSniff }, key.dstPort)
+                }
                 // The TLS/HTTP hostname may reveal a listed site only now.
                 if (engine.shouldBlock(record)) {
                     engine.noteHeld(record)
@@ -145,7 +165,19 @@ class TcpFlow(
         if (clientFin && finAcked) close("closed")
     }
 
+    /** Opens the real connection for a deferred flow (engine thread). */
+    fun connectTo(target: InetSocketAddress) {
+        try {
+            if (!target.address.isLoopbackAddress) engine.vpn.protect(channel.socket())
+            if (channel.connect(target)) flushToServer()
+            updateInterest()
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }
+
     private fun flushToServer() {
+        if (!channel.isConnected) return
         while (toServer.isNotEmpty()) {
             val b = toServer.first()
             pendingBytes -= channel.write(b)
@@ -194,8 +226,10 @@ class TcpFlow(
     private fun updateInterest() {
         if (!selKey.isValid) return
         var ops = 0
-        if (state == State.CONNECTING) {
+        if (state == State.CONNECTING || channel.isConnectionPending) {
             ops = SelectionKey.OP_CONNECT
+        } else if (!channel.isConnected) {
+            ops = 0 // deferred flow still waiting for its site name
         } else {
             if (state == State.ESTABLISHED && !serverFin && clientWindow - (ourSeq - clientAcked) > 0) {
                 ops = ops or SelectionKey.OP_READ
@@ -230,6 +264,7 @@ class TcpFlow(
         when (val r = Sniffer.sniff(buf, sniffLen)) {
             is Sniffer.Result.Host -> {
                 record.host = r.name
+                record.hostFromSniff = true
                 sniffBuf = null
             }
             Sniffer.Result.None -> sniffBuf = null

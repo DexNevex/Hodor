@@ -23,6 +23,8 @@ class ConnectionRecord(
     @Volatile var ad: String? = null
     /** Set when site filtering held this connection, e.g. "Gambling: bet.example". */
     @Volatile var filter: String? = null
+    /** True once [host] came from the connection's own TLS SNI / HTTP Host. */
+    @Volatile var hostFromSniff = false
     @Volatile var host: String? = null
         set(v) {
             field = v

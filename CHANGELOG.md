@@ -4,6 +4,21 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [0.6.0] — 2026-10-22
+
+### Fixed
+- **Allow 15 min / Always allow didn't work straight away.** A blocked site was answered with Hodor's block address, which the phone and browser cached for 60 seconds, so they kept hitting the block after you allowed it. Now:
+  - connections that still arrive at the block address are accepted, their site name is read, and if the site has been allowed Hodor looks up the real address and connects through;
+  - block answers are cached for only 10 seconds;
+  - Allow covers the whole site (e.g. `www.instagram.com` allows `instagram.com` and all its subdomains), so the page's other parts load too.
+
+### Changed
+- **New light design** based on a reference you supplied: light grey background, white cards, lime accent, dark pills.
+  - Header with the Hodor logo, a **bell** (red dot when a site was held; opens Recently held) and a **⋮ menu** (Search, Ports, Threat lists, Clear closed, Start/Stop, About).
+  - Home: a dark **status pill** with a start/stop button; the map (dark dots on light land); one combined **speed card**; a scrolling **"Where it goes"** country strip; compact **Protection / Ads blocked / Sites held** rows.
+  - A floating dark **dock** with four round icon buttons: Home, Traffic, Apps, Shield. Ports moved to the menu.
+  - **Shield is a menu** grouped into Filtering (Site filter, Your rules, Recently held), Blocking (Ads & trackers, Threat lists) and Settings (Bypass protection, Location lookups); each row shows a one-line summary and opens its own page.
+
 ## [0.5.0] — 2026-10-21
 
 ### Added

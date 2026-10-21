@@ -2,7 +2,7 @@ package com.portwatch.ui
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -13,36 +13,37 @@ import androidx.compose.ui.unit.sp
 import com.portwatch.R
 
 /**
- * Near-black cards under a mint glow. Names describe roles, not hues:
+ * Light grey screen, white cards, one lime accent and dark pills. Names describe roles:
  * "Card" is the default surface and "Ink" the text on it.
  */
 object Hodor {
-    val Bg = Color(0xFF07090A)
-    val BgDeep = Color(0xFF050607)
-    val Glow = Color(0xFF9DF2D2)          // top-of-screen mint wash
-    val Card = Color(0xFF131716)
-    val CardHi = Color(0xFF1B201F)
-    val Dark = Color(0xFF0D100F)
-    val DarkRow = Color(0xFF1F2523)
-    val Border = Color(0xFF262C2A)
-    val Pill = Color(0xFF222826)
-    val Accent = Color(0xFF34E3A4)
-    val AccentDim = Color(0xFF1C7A59)
+    val Bg = Color(0xFFE9EAEC)
+    val BgDeep = Color(0xFFE2E3E6)
+    val Glow = Color(0xFFE9EAEC)          // (no glow in the light design)
+    val Card = Color(0xFFFFFFFF)
+    val CardHi = Color(0xFFF5F6F7)
+    val Dark = Color(0xFF1D1E20)          // dark pills: status bar, dock
+    val DarkRow = Color(0xFF2E2F33)
+    val Border = Color(0xFFE4E5E8)
+    val Pill = Color(0xFFEFF0F2)
+    val Accent = Color(0xFFC6D96E)        // lime, for fills
+    val AccentInk = Color(0xFF6A7B1A)     // olive, for lime-coloured text on white
+    val AccentDim = Color(0xFFEEF3D3)     // soft lime tint
     val Violet = Color(0xFF8C7CF7)
-    val Ink = Color(0xFFF1F4F3)
-    val Muted = Color(0xFF86908C)
-    val OnBg = Color(0xFFF1F4F3)
-    val OnBgMuted = Color(0xFF9AA39F)
-    val OnDark = Color(0xFFF1F4F3)
-    val OnDarkMuted = Color(0xFF86908C)
-    val OnAccent = Color(0xFF04140D)
-    val Danger = Color(0xFFFF5C61)
-    val DangerTint = Color(0xFF3A1719)
-    val OkTint = Color(0xFF12301F)
-    val OkInk = Color(0xFF34E3A4)
-    val Sea = Color(0xFF0E1211)
-    val Land = Color(0xFF232A28)
-    val LandHot = Color(0xFF1E6B50)
+    val Ink = Color(0xFF1B1C1E)
+    val Muted = Color(0xFF8A8D93)
+    val OnBg = Color(0xFF1B1C1E)
+    val OnBgMuted = Color(0xFF6F7278)
+    val OnDark = Color(0xFFF4F4F2)
+    val OnDarkMuted = Color(0xFF9C9EA3)
+    val OnAccent = Color(0xFF1B1C1E)
+    val Danger = Color(0xFFE5484D)
+    val DangerTint = Color(0xFFFCE6E6)
+    val OkTint = Color(0xFFEEF3D3)
+    val OkInk = Color(0xFF5E6E16)
+    val Sea = Color(0xFFF5F6F7)
+    val Land = Color(0xFFDADCE0)
+    val LandHot = Color(0xFFC6D96E)
 }
 
 val Outfit = FontFamily(
@@ -63,11 +64,12 @@ private fun TextStyle.o() = copy(fontFamily = Outfit)
 private fun TextStyle.x() = copy(fontFamily = Oxanium)
 
 private val base = Typography()
+// Outfit throughout (clean and light); Oxanium stays for small caps labels.
 private val HodorType = Typography(
-    displayLarge = base.displayLarge.x(), displayMedium = base.displayMedium.x(), displaySmall = base.displaySmall.x(),
-    headlineLarge = base.headlineLarge.x(), headlineMedium = base.headlineMedium.x(), headlineSmall = base.headlineSmall.x(),
-    titleLarge = base.titleLarge.x(), titleMedium = base.titleMedium.x().copy(fontWeight = FontWeight.Medium),
-    titleSmall = base.titleSmall.x(),
+    displayLarge = base.displayLarge.o(), displayMedium = base.displayMedium.o(), displaySmall = base.displaySmall.o(),
+    headlineLarge = base.headlineLarge.o(), headlineMedium = base.headlineMedium.o(), headlineSmall = base.headlineSmall.o(),
+    titleLarge = base.titleLarge.o(), titleMedium = base.titleMedium.o().copy(fontWeight = FontWeight.SemiBold),
+    titleSmall = base.titleSmall.o().copy(fontWeight = FontWeight.Medium),
     bodyLarge = base.bodyLarge.o(), bodyMedium = base.bodyMedium.o(), bodySmall = base.bodySmall.o(),
     labelLarge = base.labelLarge.x(), labelMedium = base.labelMedium.x(),
     labelSmall = base.labelSmall.x().copy(letterSpacing = 0.8.sp),
@@ -76,8 +78,8 @@ private val HodorType = Typography(
 @Composable
 fun HodorTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Hodor.Accent,
+        colorScheme = lightColorScheme(
+            primary = Hodor.AccentInk,
             onPrimary = Hodor.OnAccent,
             secondary = Hodor.Violet,
             background = Hodor.Bg,

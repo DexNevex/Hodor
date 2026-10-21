@@ -41,8 +41,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val listPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 110.dp)
-private val listGap = Arrangement.spacedBy(12.dp)
+val listPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 120.dp)
+val listGap = Arrangement.spacedBy(12.dp)
 
 // ---------- Connections ----------
 
@@ -340,7 +340,7 @@ fun PortsTab(list: List<ConnView>, running: Boolean) {
 // ---------- Shield: ads and threats ----------
 
 @Composable
-private fun AdsCard(list: List<ConnView>) {
+fun AdsCard(list: List<ConnView>) {
     val blockAds by Settings.blockAds.collectAsState()
     val level by Settings.adLevel.collectAsState()
     val status by ThreatIntel.adStatus.collectAsState()
@@ -396,7 +396,7 @@ private fun AdsCard(list: List<ConnView>) {
 private val dateFormat = SimpleDateFormat("d MMM HH:mm", Locale.getDefault())
 
 @Composable
-fun ThreatsTab(list: List<ConnView>) {
+fun ThreatsPage(list: List<ConnView>) {
     val feeds by ThreatIntel.status.collectAsState()
     val updating by ThreatIntel.updating.collectAsState()
     val frequency by ThreatIntel.frequency.collectAsState()
@@ -406,11 +406,6 @@ fun ThreatsTab(list: List<ConnView>) {
     val flagged = list.filter { it.threat != null }
 
     LazyColumn(contentPadding = listPadding, verticalArrangement = listGap) {
-        item { FilterCard() }
-        item { RulesCard() }
-        item { HeldCard() }
-        item { BypassCard() }
-        item { AdsCard(list) }
         item {
             HCard(Modifier.fillMaxWidth(), color = if (blockThreats) Hodor.AccentDim else Hodor.Card) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -468,7 +463,7 @@ fun ThreatsTab(list: List<ConnView>) {
                     Column(Modifier.padding(vertical = 8.dp)) {
                         Row {
                             Text(s.feed.name, style = MaterialTheme.typography.bodyLarge, color = Hodor.OnDark, modifier = Modifier.weight(1f))
-                            Text("%,d".format(s.entries), style = MaterialTheme.typography.titleSmall, color = Hodor.Accent)
+                            Text("%,d".format(s.entries), style = MaterialTheme.typography.titleSmall, color = Hodor.AccentInk)
                         }
                         Text(
                             s.feed.about + " · " + bytes(s.bytes) + " · " +

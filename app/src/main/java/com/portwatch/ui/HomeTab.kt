@@ -3,6 +3,19 @@ package com.portwatch.ui
 import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import com.portwatch.data.BlockLog
+import com.portwatch.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -64,41 +77,51 @@ import kotlin.math.sqrt
 
 private const val THREE_DAYS = 3 * 24 * 3_600_000L
 
-/** Home: the map first, then live status, speeds, totals and protection. */
+/** Home: status pill, map, speeds, where traffic goes, and short summaries. */
 @Composable
-fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: (Int) -> Unit) {
+fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: (Int, String?) -> Unit) {
     val traffic by Traffic.state.collectAsState()
+    val feeds by ThreatIntel.status.collectAsState()
+    val blockThreats by Settings.blockThreats.collectAsState()
+    val blockAds by Settings.blockAds.collectAsState()
+    val held by BlockLog.entries.collectAsState()
+    val (score, reasons) = protection(list, running, feeds, blockThreats)
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 110.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { StatusPill(running, traffic.startedAt, onToggle) }
         item { MapCard(list) }
-        item { StatusCard(list, running, traffic.startedAt, onToggle) }
+        item { SpeedCard(traffic) }
+        item { CountryStrip(list) }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SpeedCard("DOWNLOAD", "↓", traffic.downPerSec, traffic.down, Hodor.Accent, Modifier.weight(1f))
-                SpeedCard("UPLOAD", "↑", traffic.upPerSec, traffic.up, Hodor.Violet, Modifier.weight(1f))
-            }
+            InfoRow(
+                R.drawable.ic_nav_shield, "Protection",
+                reasons.firstOrNull()?.first ?: "Watching, lists up to date",
+                "$score", "%", warn = score < 80,
+            ) { goTo(Screen.SHIELD, null) }
         }
         item {
-            val top = maxOf(traffic.totalIn, traffic.totalOut, 1L).toFloat()
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TotalCard("DOWNLOADED", traffic.totalIn, traffic.totalIn / top, Hodor.Accent, Modifier.weight(1f))
-                TotalCard("UPLOADED", traffic.totalOut, traffic.totalOut / top, Hodor.Violet, Modifier.weight(1f))
-            }
+            InfoRow(
+                R.drawable.ic_nav_traffic, "Ads blocked",
+                if (blockAds) "${list.count { it.ad != null }} ad and tracker requests seen" else "Off · tap to turn on",
+                "${list.count { it.ad != null && it.state == "blocked" }}", "",
+            ) { goTo(Screen.SHIELD, "ads") }
         }
-        item { ProtectionCard(list, running) { goTo(4) } }
-        item { AdsSummaryCard(list) { goTo(4) } }
-        item { CountriesCard(list) }
+        item {
+            InfoRow(
+                R.drawable.ic_bell, "Sites held",
+                held.firstOrNull()?.let { "Last: ${it.domain}" } ?: "Site filter · nothing held yet",
+                "${held.sumOf { it.count }}", "",
+            ) { goTo(Screen.SHIELD, "held") }
+        }
         item { VersionFooter() }
     }
 }
 
-// ---------- status ----------
-
+/** Dark capsule like an "incoming call" bar: status, uptime, and a start/stop button. */
 @Composable
-private fun StatusCard(list: List<ConnView>, running: Boolean, startedAt: Long, onToggle: () -> Unit) {
-    val dns by PortWatchVpnService.upstreamDns.collectAsState()
+private fun StatusPill(running: Boolean, startedAt: Long, onToggle: () -> Unit) {
     val now by produceState(System.currentTimeMillis(), running) {
         while (running) {
             value = System.currentTimeMillis()
@@ -106,76 +129,151 @@ private fun StatusCard(list: List<ConnView>, running: Boolean, startedAt: Long, 
         }
     }
     val elapsed = if (running && startedAt > 0) (now - startedAt).coerceAtLeast(0) / 1000 else 0
-    HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 20.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if (running) "WATCHING" else "STOPPED",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (running) Hodor.Accent else Hodor.Muted,
-                    letterSpacing = 2.sp,
-                )
-                Text(
-                    "%02d:%02d:%02d".format(elapsed / 3600, elapsed / 60 % 60, elapsed % 60),
-                    fontFamily = Oxanium, fontSize = 38.sp, color = Hodor.Ink,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (running) "DNS ${dns ?: "—"} · ${list.distinctBy { it.uid }.size} APPS · ${list.count { it.active }} OPEN"
-                    else "TAP THE BUTTON TO START",
-                    style = MaterialTheme.typography.labelSmall, color = Hodor.Muted,
-                )
+    Row(
+        Modifier.fillMaxWidth().clip(CircleShape).background(Hodor.Dark).padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(18.dp)).background(if (running) Hodor.Accent else Hodor.DarkRow),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painterResource(R.drawable.ic_nav_shield), contentDescription = null,
+                colorFilter = ColorFilter.tint(if (running) Hodor.Ink else Hodor.OnDarkMuted), modifier = Modifier.size(26.dp),
+            )
+        }
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                if (running) "Watching" else "Not watching",
+                style = MaterialTheme.typography.titleMedium, color = Hodor.OnDark,
+            )
+            Text(
+                if (running) "%02d:%02d:%02d".format(elapsed / 3600, elapsed / 60 % 60, elapsed % 60) else "Tap to start",
+                style = MaterialTheme.typography.labelMedium, color = Hodor.OnDarkMuted,
+            )
+        }
+        Box(
+            Modifier.size(52.dp).clip(CircleShape).background(Hodor.Card).clickable(onClick = onToggle),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (running) {
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Hodor.Ink))
+            } else {
+                Icon(Icons.Filled.PlayArrow, contentDescription = "Start", tint = Hodor.Ink, modifier = Modifier.size(28.dp))
             }
-            PowerButton(running, onToggle, Modifier.size(104.dp))
         }
     }
 }
 
 @Composable
-private fun SpeedCard(label: String, arrow: String, now: Long, history: List<Long>, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
-    HCard(modifier, color = Hodor.Card, padding = 16.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
-            Text(arrow, color = color, fontSize = 16.sp)
+private fun SpeedCard(t: Traffic.Snapshot) {
+    HCard(Modifier.fillMaxWidth(), padding = 18.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            SpeedHalf("Download", t.downPerSec, t.down, t.totalIn, Hodor.AccentInk, Modifier.weight(1f))
+            SpeedHalf("Upload", t.upPerSec, t.up, t.totalOut, Hodor.Violet, Modifier.weight(1f))
         }
-        Spacer(Modifier.height(10.dp))
-        Sparkline(history, color, Modifier.fillMaxWidth().height(52.dp))
-        Spacer(Modifier.height(10.dp))
+    }
+}
+
+@Composable
+private fun SpeedHalf(label: String, now: Long, history: List<Long>, total: Long, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = Hodor.Muted)
+        }
         val (v, unit) = rate(now)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(v, fontFamily = Oxanium, fontSize = 28.sp, color = Hodor.Ink)
+            Text(v, fontFamily = Outfit, fontWeight = FontWeight.Light, fontSize = 32.sp, color = Hodor.Ink)
             Spacer(Modifier.width(4.dp))
-            Text(unit, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted, modifier = Modifier.padding(bottom = 5.dp))
+            Text(unit, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted, modifier = Modifier.padding(bottom = 7.dp))
+        }
+        Sparkline(history, color, Modifier.fillMaxWidth().height(34.dp))
+        Spacer(Modifier.height(6.dp))
+        Text("${bytes(total)} this session", style = MaterialTheme.typography.bodySmall, color = Hodor.Muted)
+    }
+}
+
+/** Countries as a scrolling strip, like a weather forecast row. */
+@Composable
+private fun CountryStrip(list: List<ConnView>) {
+    val geo by GeoResolver.results.collectAsState()
+    val geoOnline by Settings.geoOnline.collectAsState()
+    val countries = remember(list, geo) {
+        list.filter { !it.isDns }.mapNotNull { c -> geo[c.remoteIp]?.let { it to c } }
+            .groupBy { it.first.countryCode }
+            .map { (_, v) -> Triple(v.first().first, v.size, v.any { it.second.threat != null }) }
+            .sortedByDescending { it.second }
+    }
+    HCard(Modifier.fillMaxWidth(), padding = 18.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Where it goes", style = MaterialTheme.typography.titleMedium, color = Hodor.Ink, modifier = Modifier.weight(1f))
+            Text("${countries.size} countries", style = MaterialTheme.typography.bodySmall, color = Hodor.Muted)
+        }
+        Spacer(Modifier.height(12.dp))
+        if (countries.isEmpty()) {
+            Text(
+                if (geoOnline) "No located traffic yet." else "Location lookups are off (Shield → Location lookups).",
+                style = MaterialTheme.typography.bodySmall, color = Hodor.Muted,
+            )
+        } else {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                countries.take(20).forEach { (g, n, bad) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(flag(g.countryCode), fontSize = 28.sp)
+                        Text(
+                            "$n", fontFamily = Outfit, fontWeight = FontWeight.Medium, fontSize = 17.sp,
+                            color = if (bad) Hodor.Danger else Hodor.Ink,
+                        )
+                        Text(g.countryCode, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
+                    }
+                }
+            }
         }
     }
 }
 
+/** Compact summary row: soft lime icon, title and subtitle, big number. */
 @Composable
-private fun TotalCard(label: String, total: Long, fraction: Float, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
-    HCard(modifier, color = Hodor.Card, padding = 16.dp) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp)
-        Spacer(Modifier.height(14.dp))
-        val (v, unit) = amount(total)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(v, fontFamily = Oxanium, fontSize = 28.sp, color = Hodor.Ink)
-            Spacer(Modifier.width(4.dp))
-            Text(unit, style = MaterialTheme.typography.labelSmall, color = Hodor.Muted, modifier = Modifier.padding(bottom = 5.dp))
+private fun InfoRow(
+    icon: Int, title: String, subtitle: String, value: String, unit: String,
+    warn: Boolean = false, onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clip(CardShape).background(Hodor.Card).border(1.dp, Hodor.Border, CardShape)
+            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(50.dp).clip(CircleShape).background(if (warn) Hodor.DangerTint else Hodor.AccentDim),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painterResource(icon), contentDescription = null,
+                colorFilter = ColorFilter.tint(if (warn) Hodor.Danger else Hodor.AccentInk), modifier = Modifier.size(24.dp),
+            )
         }
-        Spacer(Modifier.height(10.dp))
-        SegmentBar(fraction, color, Modifier.fillMaxWidth().height(10.dp))
-        Spacer(Modifier.height(6.dp))
-        Text("THIS SESSION", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Hodor.Ink)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(value, fontFamily = Outfit, fontWeight = FontWeight.Light, fontSize = 32.sp, color = if (warn) Hodor.Danger else Hodor.Ink)
+        if (unit.isNotEmpty()) {
+            Text(unit, style = MaterialTheme.typography.labelMedium, color = Hodor.Muted, modifier = Modifier.padding(start = 2.dp, top = 8.dp))
+        }
     }
 }
 
 /**
- * Start at 100 and subtract for each thing that weakens protection; every
- * deduction is listed so the number explains itself.
+ * Start at 100 and subtract for each thing that weakens protection; each reason comes with
+ * its cost so the number explains itself.
  */
-@Composable
-private fun ProtectionCard(list: List<ConnView>, running: Boolean, open: () -> Unit) {
-    val feeds by ThreatIntel.status.collectAsState()
-    val blockThreats by Settings.blockThreats.collectAsState()
+fun protection(
+    list: List<ConnView>, running: Boolean, feeds: List<ThreatIntel.FeedStatus>, blockThreats: Boolean,
+): Pair<Int, List<Pair<String, Int>>> {
     val now = System.currentTimeMillis()
     val flaggedDest = list.filter { it.threat != null }.map { it.host ?: it.remoteIp }.distinct().size
     val listsOk = feeds.isNotEmpty() && feeds.all { it.entries > 0 && now - it.updated < THREE_DAYS }
@@ -185,64 +283,7 @@ private fun ProtectionCard(list: List<ConnView>, running: Boolean, open: () -> U
         if (!blockThreats) add("Flagged traffic is not blocked" to 10)
         if (!listsOk) add("Threat lists missing or out of date" to 15)
     }
-    val score = (100 - reasons.sumOf { it.second }).coerceIn(0, 100)
-    val color = when {
-        score >= 80 -> Hodor.Accent
-        score >= 50 -> Hodor.Violet
-        else -> Hodor.Danger
-    }
-    HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 18.dp, onClick = open) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("PROTECTION", style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp)
-                Text(
-                    when {
-                        score >= 80 -> "LOW RISK"
-                        score >= 50 -> "MEDIUM RISK"
-                        else -> "HIGH RISK"
-                    },
-                    style = MaterialTheme.typography.labelSmall, color = color,
-                )
-            }
-            Text("$score", fontFamily = Oxanium, fontSize = 34.sp, color = Hodor.Ink)
-            Text("%", style = MaterialTheme.typography.labelMedium, color = Hodor.Muted, modifier = Modifier.padding(start = 2.dp, top = 8.dp))
-        }
-        Spacer(Modifier.height(10.dp))
-        SegmentBar(score / 100f, color, Modifier.fillMaxWidth().height(10.dp), segments = 28)
-        Spacer(Modifier.height(10.dp))
-        if (reasons.isEmpty()) {
-            Text("Watching, lists up to date, nothing flagged.", style = MaterialTheme.typography.bodySmall, color = Hodor.Accent)
-        }
-        reasons.forEach { (why, cost) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                Text(why, style = MaterialTheme.typography.bodySmall, color = Hodor.Muted, modifier = Modifier.weight(1f))
-                Text("−$cost", style = MaterialTheme.typography.labelSmall, color = if (cost >= 15) Hodor.Danger else Hodor.Muted)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AdsSummaryCard(list: List<ConnView>, open: () -> Unit) {
-    val blockAds by Settings.blockAds.collectAsState()
-    val adLookups = list.count { it.ad != null }
-    val blocked = list.count { it.ad != null && it.state == "blocked" }
-    HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 18.dp, onClick = open) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("ADS BLOCKED", style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp)
-                Text(
-                    if (blockAds) "$adLookups ad and tracker requests seen" else "OFF · TAP TO SET UP",
-                    style = MaterialTheme.typography.labelSmall, color = if (blockAds) Hodor.Violet else Hodor.Muted,
-                )
-            }
-            Text("$blocked", fontFamily = Oxanium, fontSize = 34.sp, color = if (blockAds) Hodor.Ink else Hodor.Muted)
-        }
-        if (blockAds) {
-            Spacer(Modifier.height(10.dp))
-            SegmentBar(if (adLookups == 0) 0f else blocked.toFloat() / adLookups, Hodor.Violet, Modifier.fillMaxWidth().height(10.dp), segments = 28)
-        }
-    }
+    return (100 - reasons.sumOf { it.second }).coerceIn(0, 100) to reasons
 }
 
 @Composable
@@ -250,7 +291,7 @@ private fun VersionFooter() {
     val ctx = LocalContext.current
     val info = remember { ctx.packageManager.getPackageInfo(ctx.packageName, 0) }
     Text(
-        "HODOR v${info.versionName} · BUILD ${info.longVersionCode}",
+        "Hodor ${info.versionName} · hold the door",
         style = MaterialTheme.typography.labelSmall, color = Hodor.Muted,
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -359,7 +400,7 @@ private fun MapCard(list: List<ConnView>) {
         Box(Modifier.fillMaxWidth().aspectRatio(1.65f)) {
             WorldCanvas(points, sel, view) { selected = it?.id }
             Column(Modifier.padding(18.dp)) {
-                Text("TRAFFIC MAP", style = MaterialTheme.typography.labelMedium, color = Hodor.Accent, letterSpacing = 2.sp)
+                Text("TRAFFIC MAP", style = MaterialTheme.typography.labelMedium, color = Hodor.AccentInk, letterSpacing = 2.sp)
                 Text(
                     "$countries countries · ${points.size} places",
                     style = MaterialTheme.typography.labelSmall, color = Hodor.Muted,
@@ -411,54 +452,6 @@ private fun PlaceCard(p: MapPoint, onClose: () -> Unit) {
         if (p.geo.org.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Text("NETWORK  ${p.geo.org}", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
-        }
-    }
-}
-
-@Composable
-private fun CountriesCard(list: List<ConnView>) {
-    val geo by GeoResolver.results.collectAsState()
-    val geoOnline by Settings.geoOnline.collectAsState()
-    val points = remember(list, geo) { mapPoints(list, geo) }
-    val countries = points.groupBy { it.geo.countryCode }
-        .map { (_, ps) -> ps.first().geo to ps.flatMap { it.conns } }
-        .sortedByDescending { it.second.size }
-    HCard(Modifier.fillMaxWidth(), color = Hodor.Card, padding = 20.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("COUNTRIES", style = MaterialTheme.typography.labelMedium, color = Hodor.Ink, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
-            Text("${countries.size}", fontFamily = Oxanium, fontSize = 28.sp, color = Hodor.Ink)
-        }
-        if (countries.isEmpty()) {
-            Text("No located traffic yet.", style = MaterialTheme.typography.bodySmall, color = Hodor.Muted)
-        }
-        countries.forEach { (g, conns) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(flag(g.countryCode), fontSize = 22.sp)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(g.country, style = MaterialTheme.typography.bodyLarge, color = Hodor.Ink)
-                    Text(
-                        conns.map { it.appLabel }.distinct().joinToString(", "),
-                        style = MaterialTheme.typography.labelSmall, color = Hodor.Muted,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "${conns.size}",
-                    fontFamily = Oxanium, fontSize = 18.sp,
-                    color = if (conns.any { it.threat != null }) Hodor.Danger else Hodor.Accent,
-                )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        HorizontalDivider(color = Hodor.Border)
-        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Look up IP locations", style = MaterialTheme.typography.bodyMedium, color = Hodor.Ink)
-                Text("Sends public IPs to ip-api.com (plain HTTP)", style = MaterialTheme.typography.bodySmall, color = Hodor.Muted)
-            }
-            Switch(checked = geoOnline, onCheckedChange = { Settings.setGeoOnline(it) }, colors = hodorSwitchColors())
         }
     }
 }
@@ -525,18 +518,18 @@ private fun WorldCanvas(points: List<MapPoint>, selected: MapPoint?, view: MapVi
         }) {
             for ((cc, path) in paths) {
                 drawPath(path, if (cc in hot) Hodor.LandHot else Hodor.Land)
-                drawPath(path, Hodor.Sea, style = Stroke(width = 0.6.dp.toPx() / view.scale))
+                drawPath(path, Hodor.Card, style = Stroke(width = 0.6.dp.toPx() / view.scale))
             }
         }
         val unit = 1.dp.toPx()
         for (cl in clusters(points, view, w, h, mergeDist).sortedBy { it.flagged }) {
             val c = cl.center
             val r = (9 + sqrt(cl.count.toFloat()) * 1.1f).coerceAtMost(16f) * unit
-            val fill = if (cl.flagged) Hodor.Danger else Hodor.Accent
-            drawCircle(fill.copy(alpha = 0.18f), radius = r * 2f, center = c)
+            val fill = if (cl.flagged) Hodor.Danger else Hodor.Dark
+            drawCircle(if (cl.flagged) fill.copy(alpha = 0.18f) else Hodor.Accent.copy(alpha = 0.45f), radius = r * 1.8f, center = c)
             if (selected != null && selected in cl.points) drawCircle(Hodor.Ink, radius = r + 3 * unit, center = c)
             drawCircle(fill, radius = r, center = c)
-            val label = measurer.measure("${cl.count}", labelStyle.copy(color = if (cl.flagged) Hodor.Ink else Hodor.OnAccent))
+            val label = measurer.measure("${cl.count}", labelStyle.copy(color = Hodor.OnDark))
             drawText(label, topLeft = Offset(c.x - label.size.width / 2f, c.y - label.size.height / 2f))
         }
     }

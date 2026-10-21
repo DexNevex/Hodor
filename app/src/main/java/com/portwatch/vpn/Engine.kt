@@ -18,6 +18,7 @@ import com.portwatch.data.Traffic
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -172,6 +173,44 @@ class Engine(
         return Filter.match(r.app, host)
     }
 
+    /**
+     * Decides where a connection to the block address goes, now that its site name is known.
+     * An app may still hold the block address from an earlier lookup after you tapped Allow,
+     * so an allowed site is looked up again and connected for real.
+     */
+    fun routeDeferred(flow: TcpFlow, host: String?, port: Int) {
+        val r = flow.record
+        val reason = host?.let { Filter.match(r.app, it) }
+        when {
+            host != null && reason == null -> thread(name = "hodor-resolve", isDaemon = true) {
+                val addr = try {
+                    InetAddress.getAllByName(host).let { all -> all.firstOrNull { it is Inet4Address } ?: all.first() }
+                } catch (e: Exception) {
+                    null
+                }
+                tasks.add(Runnable {
+                    if (addr == null) flow.block() else {
+                        r.state = "open"
+                        flow.connectTo(InetSocketAddress(addr, port))
+                    }
+                })
+                selector.wakeup()
+            }
+            port == 80 && BlockPage.port != 0 -> {
+                r.filter = reason
+                if (host != null && reason != null) Notifier.held(r.app, host, reason)
+                flow.connectTo(InetSocketAddress(LOOPBACK, BlockPage.port))
+            }
+            else -> {
+                if (host != null && reason != null) {
+                    r.filter = reason
+                    Notifier.held(r.app, host, reason)
+                }
+                flow.block()
+            }
+        }
+    }
+
     /** Records and notifies a connection held by site filtering. */
     fun noteHeld(r: ConnectionRecord) {
         val reason = filterReason(r) ?: return
@@ -228,7 +267,7 @@ class Engine(
         put16(q, 6, 1); put16(q, 8, 0); put16(q, 10, 0) // 1 answer, no authority/additional
         val answer = byteArrayOf(
             0xC0.toByte(), 0x0C, 0, 1, 0, 1, // name -> question, type A, class IN
-            0, 0, 0, 60, 0, 4,               // TTL 60 s, 4 bytes
+            0, 0, 0, 10, 0, 4,               // TTL 10 s (short, so an Allow takes effect fast), 4 bytes
         ) + BLOCK_IP.address
         val b = q + answer
         writeTun(PacketBuilder.udp(key.dstIp, key.srcIp, key.dstPort, key.srcPort, b, 0, b.size))
@@ -249,7 +288,6 @@ class Engine(
     private fun target(dst: InetAddress, port: Int): InetSocketAddress? = when (dst) {
         FAKE_DNS -> if (port == 53) InetSocketAddress(upstreamDns, 53) else null
         // The page server listens on IPv4 loopback (getLoopbackAddress() would be ::1 on Android).
-        BLOCK_IP -> if (port == 80 && BlockPage.port != 0) InetSocketAddress(LOOPBACK, BlockPage.port) else null
         else -> InetSocketAddress(dst, port)
     }
 
@@ -259,6 +297,17 @@ class Engine(
         val flow = tcpFlows[key]
         if (flow != null) {
             flow.onClientSegment(seg)
+            return
+        }
+        if (seg.has(SYN) && !seg.has(ACK) && ip.dst == BLOCK_IP) {
+            if (seg.dstPort != 80 && seg.dstPort != 443) return rejectTcp(key, seg)
+            val record = newRecord(key)
+            try {
+                tcpFlows[key] = TcpFlow(this, key, null, record, seg)
+            } catch (e: Exception) {
+                record.finish("failed")
+                rejectTcp(key, seg)
+            }
             return
         }
         if (seg.has(SYN) && !seg.has(ACK)) {

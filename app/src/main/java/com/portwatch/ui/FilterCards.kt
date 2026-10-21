@@ -203,7 +203,7 @@ fun HeldCard() {
                         style = MaterialTheme.typography.labelSmall, color = Hodor.OnDarkMuted, maxLines = 1,
                     )
                 }
-                Pill("Allow 15m", bg = Hodor.DarkRow, fg = Hodor.Accent) {
+                Pill("Allow 15m", bg = Hodor.DarkRow, fg = Hodor.AccentInk) {
                     Filter.allowFor(e.domain, 15)
                     Toast.makeText(ctx, "${e.domain} allowed for 15 minutes", Toast.LENGTH_SHORT).show()
                 }

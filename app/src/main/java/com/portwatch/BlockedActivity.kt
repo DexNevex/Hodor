@@ -57,7 +57,7 @@ class BlockedActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
         )
         val domain = intent.getStringExtra("domain") ?: "this site"
         val reason = intent.getStringExtra("reason") ?: "Blocked by Hodor"
@@ -68,12 +68,12 @@ class BlockedActivity : ComponentActivity() {
                     domain, reason, app,
                     allow15 = {
                         Filter.allowFor(domain, 15)
-                        Toast.makeText(this, "$domain allowed for 15 minutes. Reload the page.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "${Filter.site(domain)} allowed for 15 minutes. Reload the page.", Toast.LENGTH_LONG).show()
                         finish()
                     },
                     allowAlways = {
                         Filter.allowAlways(domain)
-                        Toast.makeText(this, "$domain is always allowed now.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "${Filter.site(domain)} is always allowed now.", Toast.LENGTH_LONG).show()
                         finish()
                     },
                     close = { finish() },
@@ -109,7 +109,7 @@ private fun HeldScreen(
                 Spacer(Modifier.height(12.dp))
                 Text(
                     "HODOR HELD THE DOOR", fontFamily = Oxanium, fontSize = 15.sp, letterSpacing = 3.sp,
-                    color = Hodor.Accent, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                    color = Hodor.AccentInk, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -130,7 +130,7 @@ private fun HeldScreen(
             Spacer(Modifier.height(18.dp))
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill("Allow for 15 minutes", Modifier.fillMaxWidth(), bg = Hodor.Accent, fg = Hodor.OnAccent, onClick = allow15)
-                Pill("Always allow $domain", Modifier.fillMaxWidth(), bg = Hodor.Pill, onClick = allowAlways)
+                Pill("Always allow ${Filter.site(domain)}", Modifier.fillMaxWidth(), bg = Hodor.Pill, onClick = allowAlways)
                 Pill("Close", Modifier.fillMaxWidth(), bg = Hodor.Card, fg = Hodor.Muted, onClick = close)
             }
         }

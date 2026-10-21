@@ -131,13 +131,27 @@ object Filter {
         }
     }
 
-    /** Lets [domain] (and its subdomains) through for [minutes]. */
+    /**
+     * Lets the whole site [domain] belongs to through for [minutes]: "www.instagram.com"
+     * allows instagram.com and every subdomain, so the page's other parts load too.
+     */
     fun allowFor(domain: String, minutes: Int) {
-        tempAllowed[domain.lowercase()] = System.currentTimeMillis() + minutes * 60_000L
+        tempAllowed[site(domain)] = System.currentTimeMillis() + minutes * 60_000L
         notifyRules()
     }
 
-    fun allowAlways(domain: String) = addRule(domain, allow = true)
+    fun allowAlways(domain: String) = addRule(site(domain), allow = true)
+
+    /** The registrable part of a hostname: "a.b.example.co.uk" -> "example.co.uk". */
+    fun site(host: String): String {
+        val labels = host.lowercase().trimEnd('.').split('.')
+        if (labels.size <= 2) return labels.joinToString(".")
+        val secondLevel = labels[labels.size - 2]
+        val keep = if (labels.last().length == 2 && secondLevel in SECOND_LEVEL) 3 else 2
+        return labels.takeLast(keep).joinToString(".")
+    }
+
+    private val SECOND_LEVEL = setOf("co", "com", "net", "org", "gov", "edu", "ac", "or", "ne", "go")
 
     // ---------- matching ----------
 
