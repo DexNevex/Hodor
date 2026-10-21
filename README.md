@@ -4,6 +4,8 @@
 
 Built for and tested on a Pixel 9a running Android 17 (minimum Android 10).
 
+**Using the app?** Start with the [user guide](docs/USER_GUIDE.md).
+
 ## What it does
 
 | Area | What you get |
@@ -82,7 +84,7 @@ app/src/main/java/com/portwatch/
   ui/                  Compose screens and components
 app/src/main/assets/countries.geojson   world map (Natural Earth, public domain)
 app/src/main/res/font/                  Outfit and Oxanium (SIL Open Font License)
-docs/                  architecture and test records
+docs/                  user guide, architecture and test records
 ```
 
 The Kotlin package and application ID are still `com.portwatch` (the app's original name). Changing them would install Hodor as a separate app and ask for VPN consent again.

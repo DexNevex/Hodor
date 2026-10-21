@@ -4,6 +4,11 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [Unreleased]
+
+### Added
+- User guide (`docs/USER_GUIDE.md`): installing, the screens, common tasks, badges, lists, privacy, troubleshooting and a glossary.
+
 ## [0.4.0] — 2026-10-21
 
 ### Added
