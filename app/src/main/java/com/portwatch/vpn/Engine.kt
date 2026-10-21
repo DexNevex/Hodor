@@ -47,6 +47,7 @@ class Engine(
         val FAKE_DNS: InetAddress = InetAddress.getByName("10.111.0.53")
         /** Filtered names resolve here; port 80 is answered with the block page. */
         val BLOCK_IP: InetAddress = InetAddress.getByName("10.111.0.80")
+        val LOOPBACK: InetAddress = InetAddress.getByName("127.0.0.1")
     }
 
     enum class DnsVerdict { ALLOW, NXDOMAIN, NODATA, BLOCK_PAGE }
@@ -247,7 +248,8 @@ class Engine(
     /** Where to really connect. DNS sent to our fake resolver goes to the network's resolver. */
     private fun target(dst: InetAddress, port: Int): InetSocketAddress? = when (dst) {
         FAKE_DNS -> if (port == 53) InetSocketAddress(upstreamDns, 53) else null
-        BLOCK_IP -> if (port == 80 && BlockPage.port != 0) InetSocketAddress(InetAddress.getLoopbackAddress(), BlockPage.port) else null
+        // The page server listens on IPv4 loopback (getLoopbackAddress() would be ::1 on Android).
+        BLOCK_IP -> if (port == 80 && BlockPage.port != 0) InetSocketAddress(LOOPBACK, BlockPage.port) else null
         else -> InetSocketAddress(dst, port)
     }
 

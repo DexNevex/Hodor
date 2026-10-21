@@ -51,7 +51,9 @@ class TcpFlow(
     init {
         try {
             channel.configureBlocking(false)
-            engine.vpn.protect(channel.socket())
+            // Local (block page) connections never enter the VPN; protecting them would bind
+            // them to the Wi-Fi/mobile network, where loopback isn't reachable.
+            if (!target.address.isLoopbackAddress) engine.vpn.protect(channel.socket())
             val connected = channel.connect(target)
             selKey = channel.register(engine.selector, SelectionKey.OP_CONNECT, this)
             if (connected) onConnected()

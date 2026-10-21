@@ -6,6 +6,25 @@ There are no automated tests yet. Each version was checked by hand on the target
 
 Threat-list checks used DNS lookups only: `ping` from the debug shell resolves the name, and Hodor doesn't relay ping packets, so nothing actually reached the listed hosts.
 
+## 0.5.0 — site filtering (partly tested 21 Oct 2026)
+
+| Check | Result |
+|---|---|
+| Shield shows Filter sites, Your rules, Recently held, Bypass protection | ✅ |
+| Adding block rules (`neverssl.com`, `reddit.com`) | ✅ saved; the keyboard's Done key adds a Block rule |
+| Rule covers the site and its subdomains | ✅ `reddit.com`, `www.reddit.com`, `old.reddit.com` and `neverssl.com` all resolve to the block address 10.111.0.80; `www.wikipedia.org` resolves normally |
+| Plain-HTTP block page in Chrome | ✅ `http://neverssl.com` shows the "Hodor held the door" page: illustration, site, "Your rule: neverssl.com". The first build failed (relay went to IPv6 loopback, and the socket was bound to Wi-Fi); fixed during testing |
+| HTTPS site held | ✅ `https://www.reddit.com` doesn't load; notification "Hodor held the door · www.reddit.com · Your rule · Chrome" |
+| Notifications grouped and rate-limited | ✅ four notifications (neverssl, reddit, www., old.) grouped under Hodor |
+| HTTPS to the block address is refused | ✅ connection refused on 443 |
+| Encrypted-DNS bypass blocked | ✅ DoH list downloaded (59 KB); `dns.google`, `cloudflare-dns.com`, `dns.quad9.net` → 10.111.0.80 |
+| Category list download and blocking | ⬜ not yet tested |
+| Blocked screen (from notification / Recently held) and its Allow buttons | ⬜ not yet tested |
+| Allow rule beating a list; "Allow 15 min" | ⬜ not yet tested |
+| QUIC fallback; per-app "Skip site filter"; ECH (HTTPS-record) suppression | ⬜ not yet tested |
+
+Testing paused because the phone was in use.
+
 ## 0.4.0 — ad blocking (tested 21 Oct 2026)
 
 Method: each ad hostname below is a **real** host (the Mac resolves it through normal DNS) whose **parent** domain is on the list. Every test used a name not looked up before, so Android's DNS cache couldn't answer for it.
