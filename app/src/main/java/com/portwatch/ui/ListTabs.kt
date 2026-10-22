@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.portwatch.data.ConnView
+import com.portwatch.data.Counters
 import com.portwatch.data.Filter
 import com.portwatch.data.Geo
 import com.portwatch.data.GeoResolver
@@ -344,7 +345,7 @@ fun AdsCard(list: List<ConnView>) {
     val level by Settings.adLevel.collectAsState()
     val status by ThreatIntel.adStatus.collectAsState()
     val updating by ThreatIntel.updating.collectAsState()
-    val blockedCount = list.count { it.ad != null && it.state == "blocked" }
+    val counts by Counters.state.collectAsState()
     HCard(Modifier.fillMaxWidth(), color = if (blockAds) Color(0xFF1A1730) else Hodor.Card) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -368,8 +369,8 @@ fun AdsCard(list: List<ConnView>) {
             }
             Spacer(Modifier.weight(1f))
             if (blockAds) {
-                Text("$blockedCount", fontFamily = AppFont, fontSize = 26.sp, color = Hodor.Violet)
-                Text(" blocked", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
+                Text("%,d".format(counts.ads.today), fontFamily = AppFont, fontSize = 26.sp, color = Hodor.Violet)
+                Text(" today", style = MaterialTheme.typography.labelSmall, color = Hodor.Muted)
             }
         }
         Spacer(Modifier.height(8.dp))

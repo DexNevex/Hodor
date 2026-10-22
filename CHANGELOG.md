@@ -4,6 +4,12 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [0.7.2] — 2026-10-22
+
+### Fixed
+- **The Ads blocked and Sites held counters reset themselves.** They counted whatever was still in the in-memory connection list, so they dropped on **Clear closed**, as the 3,000-entry list rolled over, and whenever the app restarted or was updated. They're now real counters, saved on the phone, shown as **Today** (resets at midnight) and **All time**, on Home, in the Shield menu and on the Ads page. They count events: a site looked up for both IPv4 and IPv6 counts twice.
+- Per-app counts on the Apps screen still cover the current session.
+
 ## [0.7.1] — 2026-10-22
 
 ### Fixed

@@ -35,6 +35,7 @@ object Notifier {
     /** Records the block and, unless it was just shown, notifies. Safe to call from any thread. */
     fun held(who: AppInfo, domain: String, reason: String) {
         BlockLog.add(who, domain, reason)
+        Counters.held()
         val key = "${who.key}|$domain"
         val now = System.currentTimeMillis()
         synchronized(lastShown) {

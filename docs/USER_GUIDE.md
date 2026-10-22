@@ -2,7 +2,7 @@
 
 Hodor shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad sites, ads and trackers, and whole categories of sites.
 
-This guide covers version 0.7.0. Your version is shown at the bottom of the **Map** screen.
+This guide covers version 0.7.2. Your version is shown at the bottom of the **Map** screen.
 
 ---
 
@@ -261,6 +261,7 @@ Nothing else is sent: no app names, no browsing content, no account. The connect
 | No "held" notifications | Bedtime mode or Do Not Disturb hides them: the bell's red dot and **Recently held** still show everything. |
 | No "held" notifications (other causes) | Allow notifications for Hodor in Android settings. Repeats of the same site and app are silenced for 2 minutes. |
 | Video calls or games slower with filtering on | **Block QUIC** makes apps use TCP. Turn it off in **Bypass protection** if needed; filtering still works on DNS and site names. |
+| Counts on Home look different from the Traffic list | Home shows saved **Today / All time** counters, which survive restarts and clearing; the Traffic and Apps screens show only this session's connections. |
 | The Ads blocked count stays at 0 | Make sure **Block ads & trackers** is on, that the list finished downloading (Shield shows the domain count), and that the app doesn't have **Allow ads** on. |
 
 ---

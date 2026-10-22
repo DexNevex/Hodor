@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import com.portwatch.data.BlockLog
+import com.portwatch.data.Counters
 import com.portwatch.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
@@ -85,6 +86,7 @@ fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: 
     val blockThreats by Settings.blockThreats.collectAsState()
     val blockAds by Settings.blockAds.collectAsState()
     val held by BlockLog.entries.collectAsState()
+    val counts by Counters.state.collectAsState()
     val (score, reasons) = protection(list, running, feeds, blockThreats)
     LazyColumn(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 120.dp),
@@ -103,16 +105,16 @@ fun HomeTab(list: List<ConnView>, running: Boolean, onToggle: () -> Unit, goTo: 
         }
         item {
             InfoRow(
-                R.drawable.ic_nav_traffic, "Ads blocked",
-                if (blockAds) "${list.count { it.ad != null }} ad and tracker requests seen" else "Off · tap to turn on",
-                "${list.count { it.ad != null && it.state == "blocked" }}", "", tile = IosColor.Purple,
+                R.drawable.ic_nav_traffic, "Ads blocked today",
+                if (blockAds) "All time %,d".format(counts.ads.allTime) else "Off · tap to turn on",
+                "%,d".format(counts.ads.today), "", tile = IosColor.Purple,
             ) { goTo(Screen.SHIELD, "ads") }
         }
         item {
             InfoRow(
-                R.drawable.ic_bell, "Sites held",
-                held.firstOrNull()?.let { "Last: ${it.domain}" } ?: "Site filter · nothing held yet",
-                "${held.sumOf { it.count }}", "", tile = IosColor.Orange,
+                R.drawable.ic_bell, "Sites held today",
+                "All time %,d".format(counts.held.allTime) + (held.firstOrNull()?.let { " · last ${it.domain}" } ?: ""),
+                "%,d".format(counts.held.today), "", tile = IosColor.Orange,
             ) { goTo(Screen.SHIELD, "held") }
         }
         item { VersionFooter() }

@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import com.portwatch.data.AppInfo
 import com.portwatch.data.AppResolver
+import com.portwatch.data.Counters
 import com.portwatch.data.Filter
 import com.portwatch.data.Notifier
 import com.portwatch.data.ConnectionLog
@@ -136,6 +137,7 @@ class Engine(
                 }
                 if (now - lastPublish > 1_000) {
                     ConnectionLog.publish()
+                    Counters.flush()
                     Traffic.tick()
                     lastPublish = now
                 }
@@ -211,8 +213,17 @@ class Engine(
         }
     }
 
+    /** Counts a blocked connection whose only reason is ad/tracker blocking. */
+    private fun countAd(r: ConnectionRecord) {
+        if (r.ad == null || !Settings.adsBlockedFor(r.app) || Settings.isBlocked(r.app)) return
+        if (Settings.blockThreats.value && r.threat != null) return
+        if (filterReason(r) != null) return
+        Counters.adBlocked()
+    }
+
     /** Records and notifies a connection held by site filtering. */
     fun noteHeld(r: ConnectionRecord) {
+        countAd(r)
         val reason = filterReason(r) ?: return
         r.filter = reason
         Notifier.held(r.app, r.host ?: return, reason)
@@ -228,7 +239,10 @@ class Engine(
         if (Filter.isAllowed(name)) return DnsVerdict.ALLOW to null
         if (Settings.blockThreats.value && ThreatIntel.matchHost(name) != null) return DnsVerdict.NXDOMAIN to null
         Filter.match(app, name)?.let { return DnsVerdict.BLOCK_PAGE to it }
-        if (Settings.adsBlockedFor(app) && ThreatIntel.matchAd(name) != null) return DnsVerdict.NXDOMAIN to null
+        if (Settings.adsBlockedFor(app) && ThreatIntel.matchAd(name) != null) {
+            Counters.adBlocked()
+            return DnsVerdict.NXDOMAIN to null
+        }
         if (qtype == 65 && Filter.active && Filter.stopBypass.value && !Filter.isExempt(app)) return DnsVerdict.NODATA to null
         return DnsVerdict.ALLOW to null
     }
@@ -370,6 +384,7 @@ class Engine(
             val record = newRecord(key, query)
             // DNS queries are judged one by one in UdpFlow; here only a blocked app stops them.
             if (if (dstPort == 53) Settings.isBlocked(record.app) else shouldBlock(record)) {
+                if (dstPort != 53) countAd(record)
                 record.finish("blocked")
                 blockedUdp[key] = SystemClock.elapsedRealtime()
                 if (dstPort == 53) replyNxDomain(key, ip.data, o + 8, len)

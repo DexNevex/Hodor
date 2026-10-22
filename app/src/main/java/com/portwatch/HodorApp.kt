@@ -1,6 +1,7 @@
 package com.portwatch
 
 import android.app.Application
+import com.portwatch.data.Counters
 import com.portwatch.data.Filter
 import com.portwatch.data.GeoResolver
 import com.portwatch.data.Notifier
@@ -11,6 +12,7 @@ class HodorApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Settings.init(this)
+        Counters.init(this)
         ThreatIntel.init(this)
         Filter.init(this)
         Notifier.init(this)

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import com.portwatch.R
 import com.portwatch.data.BlockLog
+import com.portwatch.data.Counters
 import com.portwatch.data.ConnView
 import com.portwatch.data.Filter
 import com.portwatch.data.Settings
@@ -77,6 +78,7 @@ fun ShieldTab(list: List<ConnView>, page: String?, open: (String?) -> Unit) {
     val enabled by Filter.enabled.collectAsState()
     val rules by Filter.rules.collectAsState()
     val held by BlockLog.entries.collectAsState()
+    val counts by Counters.state.collectAsState()
     val blockAds by Settings.blockAds.collectAsState()
     val blockThreats by Settings.blockThreats.collectAsState()
     val feeds by ThreatIntel.status.collectAsState()
@@ -87,8 +89,9 @@ fun ShieldTab(list: List<ConnView>, page: String?, open: (String?) -> Unit) {
     fun summary(id: String): Pair<String, Boolean> = when (id) {
         "filter" -> (if (enabled.isEmpty()) "Off" else Filter.categories.filter { it.id in enabled }.joinToString(", ") { it.name }) to enabled.isNotEmpty()
         "rules" -> (if (rules.isEmpty()) "No rules" else "${rules.count { !it.allow }} blocked · ${rules.count { it.allow }} allowed") to rules.isNotEmpty()
-        "held" -> (if (held.isEmpty()) "Nothing held yet" else "${held.size} sites · last ${held.first().domain}") to held.isNotEmpty()
-        "ads" -> (if (blockAds) "On · ${list.count { it.ad != null && it.state == "blocked" }} blocked" else "Off") to blockAds
+        "held" -> ("%,d today · %,d all time".format(counts.held.today, counts.held.allTime) +
+            (held.firstOrNull()?.let { " · last ${it.domain}" } ?: "")) to held.isNotEmpty()
+        "ads" -> (if (blockAds) "On · %,d blocked today".format(counts.ads.today) else "Off") to blockAds
         "threats" -> ("%,d entries · ".format(feeds.sumOf { it.entries }) + if (blockThreats) "blocking" else "flagging only" +
             if (flagged > 0) " · $flagged flagged" else "") to blockThreats
         "bypass" -> (if (quic) "QUIC blocked while filtering" else "QUIC allowed") to quic
