@@ -16,7 +16,7 @@ Threat-list checks used DNS lookups only: `ping` from the debug shell resolves t
 | Shield menu in dark mode: iOS Settings-style grouped rows, coloured tiles, green "on" dots | ✅ |
 | iOS-style switch | ✅ green track, white thumb (Location lookups) |
 | Selected dock button stands out in dark mode | ✅ after a fix during testing (it was darker than the others) |
-| Switching modes by tapping in the Appearance dialog | ⬜ dark was already chosen on the phone before my taps; the saved setting and the result were verified |
+| Switching modes by tapping in the Appearance dialog | ⬜ dark was already chosen on the phone before the test; the saved setting and the result were verified |
 
 ## 0.6.0 — Allow fix and light design (tested 22 Oct 2026)
 

@@ -11,6 +11,8 @@ The git repository was created at 0.3.0. Earlier versions are recorded here from
 
 ### Changed
 - On tablets, every screen keeps a maximum width of 720 dp and is centred, instead of stretching edge to edge.
+- Prepared for publishing: MIT licence, third-party notices (Inter font licence included), README for a public audience, personal details removed from the test record.
+- The custom build-output folder is now an optional per-machine setting (`hodorBuildDir` in `~/.gradle/gradle.properties`) instead of being hard-coded.
 
 ## [0.7.2] — 2026-10-22
 

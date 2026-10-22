@@ -1,8 +1,14 @@
 # Hodor
 
-*Hold the door.* An Android app that shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad destinations, ads and trackers, and whole categories of sites. It needs no root.
+*Hold the door.* An Android app that shows which apps on your phone connect to the internet, where they go, and on which ports. It can also block apps, known-bad destinations, ads and trackers, and whole categories of sites. It needs no root, and nothing is sent to a VPN server.
 
-Built for and tested on a Pixel 9a running Android 17 (minimum Android 10).
+- Live map of where your traffic goes, with speeds and totals
+- Every connection with its app, site, port and location
+- Per-app blocking, ad and tracker blocking, site filtering by category or your own rules
+- Threat lists that flag (or block) malware, phishing and botnet destinations
+- Light and dark mode
+
+Works on Android 10 and newer, phones and tablets. Developed and tested on a Pixel 9a (Android 17); also used on a Samsung Galaxy Tab S6 Lite.
 
 **Using the app?** Start with the [user guide](docs/USER_GUIDE.md).
 
@@ -36,33 +42,32 @@ Nothing goes to a VPN server: traffic leaves through your normal Wi-Fi or mobile
 | Threat lists | malware-filter (gitlab.io, URLhaus data), abuse.ch, phishing.army, emergingthreats.net, GitHub (FireHOL) | When due (Daily/Weekly/Manual), Wi-Fi only by default, skipped when unchanged |
 | Ads list | GitHub (HaGeZi) | Only while ad blocking is on, same schedule |
 | Site-filter lists | GitHub (HaGeZi), blocklistproject.github.io | Only for categories you turn on (and the DoH list while bypass protection is on), same schedule |
-| Public IP addresses | ip-api.com, **plain HTTP** (their free tier has no HTTPS) | Each new public IP, once; results are cached. Turn off with **Look up IP locations** on the map screen |
+| Public IP addresses | ip-api.com, **plain HTTP** (their free tier has no HTTPS) | Each new public IP, once; results are cached. Turn off in **Shield → Location lookups** |
 
 Nothing else is sent. The connection log is kept in memory only, and is gone when the app stops. Settings, lists and the IP-location cache are stored in the app's private storage.
 
-## Install on the phone
+## Install
 
-From the project folder, with the phone connected and USB debugging on:
+1. Download `Hodor.apk` from the [latest release](../../releases/latest).
+2. Open it on your phone and allow installs from that source. You may see a Play Protect warning, because the app isn't from the Play Store; tap **Install anyway**. On Samsung devices, turn off **Auto Blocker** first (Settings → Security and privacy).
+3. Open Hodor and tap the play button on the Home screen. The first time, Android asks you to allow the VPN.
 
-```bash
-~/Library/Android/sdk/platform-tools/adb install -r Hodor.apk
-```
-
-Then open Hodor and tap **LIVE** (or the power button on the map screen). The first time, Android asks you to allow the VPN.
+Or with USB debugging on: `adb install -r Hodor.apk`.
 
 ## Build from source
 
-Requirements: JDK 17 and the Android SDK, installed on this Mac at:
-
-- JDK: `/opt/homebrew/opt/openjdk@17`
-- SDK: `~/Library/Android/sdk` (platform 36, build-tools 36.0.0); its path is in `local.properties`
+You need JDK 17 and the Android SDK (platform 36, build-tools 36.0.0). Tell Gradle where the SDK is, either with `ANDROID_HOME` or a `local.properties` file containing `sdk.dir=/path/to/Android/sdk`.
 
 ```bash
-JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew assembleDebug
-cp ~/Library/Caches/HodorBuild/app/outputs/apk/debug/app-debug.apk Hodor.apk
+./gradlew assembleDebug
+# APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Build output goes to `~/Library/Caches/HodorBuild`, not `app/build`. The Desktop is synced by iCloud, and sync made `… 2.dex` copies mid-build that broke the build (see the end of `build.gradle.kts`).
+If the project sits in a cloud-synced folder (iCloud, Dropbox), sync can copy files mid-build and break it. To keep build output elsewhere, add this to `~/.gradle/gradle.properties`:
+
+```properties
+hodorBuildDir=/Users/you/Library/Caches/HodorBuild
+```
 
 ## Versioning
 
@@ -101,3 +106,10 @@ The Kotlin package and application ID are still `com.portwatch` (the app's origi
 - IPv4 threat lists only. IPv6 traffic is still monitored when the network has IPv6.
 - Fragmented IP packets and IPv6 extension headers are dropped (both rare).
 - There are no automated tests yet; see [docs/TESTING.md](docs/TESTING.md) for what was checked on the device.
+- Release APKs are signed with a development key. To update, install the new APK from the same source; switching to a build signed by someone else means uninstalling first.
+
+## Licence
+
+Hodor is released under the [MIT licence](LICENSE). It bundles the Inter font (SIL Open Font License) and Natural Earth map data (public domain), and downloads public block lists at run time; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The optional IP-location lookups use ip-api.com, whose free tier is for non-commercial use.
+
+Not affiliated with HBO or *Game of Thrones*.
