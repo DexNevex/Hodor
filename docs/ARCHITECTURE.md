@@ -109,7 +109,7 @@ Where the decision is applied:
 
 | List | Format | Content |
 |---|---|---|
-| URLhaus (abuse.ch) | hosts file | malware distribution sites |
+| URLhaus (abuse.ch data, fetched from the malware-filter mirror; abuse.ch retired the public download in Oct 2026) | hosts file | malware distribution sites |
 | Phishing Army | domains | phishing domains |
 | Feodo Tracker (abuse.ch) | IPs | botnet command-and-control servers |
 | ET Compromised (Proofpoint) | IPs | compromised hosts |

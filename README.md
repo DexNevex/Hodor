@@ -33,7 +33,7 @@ Nothing goes to a VPN server: traffic leaves through your normal Wi-Fi or mobile
 
 | What | Where | When |
 |---|---|---|
-| Threat lists | abuse.ch, phishing.army, emergingthreats.net, GitHub (FireHOL) | When due (Daily/Weekly/Manual), Wi-Fi only by default, skipped when unchanged |
+| Threat lists | malware-filter (gitlab.io, URLhaus data), abuse.ch, phishing.army, emergingthreats.net, GitHub (FireHOL) | When due (Daily/Weekly/Manual), Wi-Fi only by default, skipped when unchanged |
 | Ads list | GitHub (HaGeZi) | Only while ad blocking is on, same schedule |
 | Site-filter lists | GitHub (HaGeZi), blocklistproject.github.io | Only for categories you turn on (and the DoH list while bypass protection is on), same schedule |
 | Public IP addresses | ip-api.com, **plain HTTP** (their free tier has no HTTPS) | Each new public IP, once; results are cached. Turn off with **Look up IP locations** on the map screen |

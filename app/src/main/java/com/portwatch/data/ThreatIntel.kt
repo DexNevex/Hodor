@@ -34,8 +34,10 @@ object ThreatIntel {
     }
 
     val feeds = listOf(
-        Feed("urlhaus", "URLhaus", "https://urlhaus.abuse.ch/downloads/hostfile/", Kind.HOSTS,
-            "Sites spreading malware (abuse.ch)"),
+        // abuse.ch retired URLhaus's public downloads in Oct 2026 (HTTP 410; an Auth-Key is now
+        // required). malware-filter republishes the same data twice a day without a key.
+        Feed("urlhaus_mf", "URLhaus", "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt", Kind.HOSTS,
+            "Sites spreading malware (abuse.ch, via malware-filter)"),
         Feed("phishing_army", "Phishing Army", "https://phishing.army/download/phishing_army_blocklist.txt", Kind.DOMAINS,
             "Phishing domains"),
         Feed("feodo", "Feodo Tracker", "https://feodotracker.abuse.ch/downloads/ipblocklist.txt", Kind.IPS,

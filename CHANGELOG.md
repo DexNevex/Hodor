@@ -4,6 +4,14 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [0.7.1] — 2026-10-22
+
+### Fixed
+- **URLhaus list failing with "HTTP 410".** abuse.ch has retired URLhaus's public download links; downloads now need a personal Auth-Key. Hodor now gets the same URLhaus data from **malware-filter** (gitlab.io), which republishes it twice a day without a key. It's stored as a new list, so the next update fetches it.
+
+### Known issue
+- **Feodo Tracker** still downloads, but abuse.ch hasn't updated it since March 2026 (4 entries).
+
 ## [0.7.0] — 2026-10-22
 
 ### Added
