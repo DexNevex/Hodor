@@ -4,6 +4,14 @@ All notable changes to Hodor. Format based on [Keep a Changelog](https://keepach
 
 The git repository was created at 0.3.0. Earlier versions are recorded here from the development history but have no commits or tags.
 
+## [0.7.3] — 2026-10-22
+
+### Fixed
+- **Home screen wouldn't scroll on a tablet** (reported on a Samsung Galaxy Tab S6 Lite). The map grabbed every finger drag for zooming and panning, and on a tablet it fills much of the screen. Now one finger scrolls the page unless the map is zoomed in, in which case it pans the map; two fingers always pinch-zoom.
+
+### Changed
+- On tablets, every screen keeps a maximum width of 720 dp and is centred, instead of stretching edge to edge.
+
 ## [0.7.2] — 2026-10-22
 
 ### Fixed

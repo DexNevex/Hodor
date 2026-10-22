@@ -20,7 +20,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -465,9 +470,20 @@ private fun WorldCanvas(points: List<MapPoint>, selected: MapPoint?, view: MapVi
         Modifier.fillMaxSize()
             .onSizeChanged { view.size = Size(it.width.toFloat(), it.height.toFloat()) }
             .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
-                    view.zoomBy(zoom, centroid)
-                    view.offset = view.clamp(view.offset + pan)
+                // Two fingers zoom; one finger pans only once zoomed in. Otherwise the drag is
+                // left alone so the page scrolls (the map can fill most of a tablet screen).
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    do {
+                        val event = awaitPointerEvent()
+                        val fingers = event.changes.count { it.pressed }
+                        if (fingers >= 2 || view.scale > 1.01f) {
+                            val zoom = event.calculateZoom()
+                            if (zoom != 1f) view.zoomBy(zoom, event.calculateCentroid())
+                            view.offset = view.clamp(view.offset + event.calculatePan())
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
                 }
             }
             .pointerInput(points) {

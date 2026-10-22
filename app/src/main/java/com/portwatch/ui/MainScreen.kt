@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -166,7 +167,9 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 10.dp),
                 )
             }
-            Box(Modifier.weight(1f)) {
+            // On tablets keep a comfortable reading width instead of stretching edge to edge.
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+              Box(Modifier.widthIn(max = 720.dp).fillMaxSize()) {
                 when (screen) {
                     Screen.HOME -> HomeTab(shown, running, toggle) { s, page -> go(s, page) }
                     Screen.TRAFFIC -> ConnectionsTab(shown, running)
@@ -174,6 +177,7 @@ fun MainScreen(onStart: () -> Unit, onStop: () -> Unit) {
                     Screen.PORTS -> PortsTab(shown, running)
                     else -> ShieldTab(shown, shieldPage) { shieldPage = it }
                 }
+              }
             }
         }
         // Fade content out under the dock.
